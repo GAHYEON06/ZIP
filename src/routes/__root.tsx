@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { DesktopBlock } from "../components/DesktopBlock";
 
 function NotFoundComponent() {
   return (
@@ -76,15 +77,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
+      { name: "theme-color", content: "#c93636" },
+      { title: "안심 귀갓길 · AI 안전 경로 안내" },
+      { name: "description", content: "AI가 경찰서와 안심시설 데이터를 분석해 가장 안전한 귀갓길을 안내하는 모바일 앱" },
+      { name: "author", content: "Safe Route" },
+      { property: "og:title", content: "안심 귀갓길" },
+      { property: "og:description", content: "AI 기반 안전 경로 추천 · 실시간 GPS 안내 · 보호자 공유" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary" },
     ],
     links: [
       {
@@ -119,8 +120,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <DesktopBlock>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </DesktopBlock>
     </QueryClientProvider>
   );
 }
