@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, cuteMapStyle } from "@/lib/gmaps";
 import { useRouteStore, type SafeRoute, type RouteStep } from "@/lib/store";
 import { scorePath } from "@/lib/safety";
+import { computeSafeRoutes, type RouteDTO } from "@/lib/routes.functions";
 
 export const Route = createFileRoute("/routes")({
   head: () => ({
@@ -27,6 +29,7 @@ const LAYERS: Array<Pick<SafeRoute, "id" | "label" | "color" | "description">> =
 
 function RoutesPage() {
   const nav = useNavigate();
+  const compute = useServerFn(computeSafeRoutes);
   const { origin, destination, setRoutes, routes, selectedRouteId, setSelectedRouteId } = useRouteStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,8 +46,11 @@ function RoutesPage() {
     setLoading(true);
     setError(null);
 
-    loadGoogleMaps()
-      .then(async (g) => {
+    Promise.all([
+      loadGoogleMaps(),
+      compute({ data: { origin: { lat: origin.lat, lng: origin.lng }, destination: { lat: destination.lat, lng: destination.lng } } }),
+    ])
+      .then(([g, result]: [typeof google, { routes: RouteDTO[] }]) => {
         if (cancelled) return;
         if (!mapRef.current && mapDiv.current) {
           mapRef.current = new g.maps.Map(mapDiv.current, {
@@ -55,32 +61,27 @@ function RoutesPage() {
             gestureHandling: "greedy",
           });
         }
-        const svc = new g.maps.DirectionsService();
-        // Request 4 alternatives with different modes/strategies
-        const req: google.maps.DirectionsRequest = {
-          origin: { lat: origin.lat, lng: origin.lng },
-          destination: { lat: destination.lat, lng: destination.lng },
-          travelMode: g.maps.TravelMode.WALKING,
-          provideRouteAlternatives: true,
-        };
-        const res = await svc.route(req);
-        const rawRoutes = res.routes.slice(0, 4);
-        while (rawRoutes.length < 4) rawRoutes.push(res.routes[0]);
+        const rawRoutes = result.routes.slice(0, 4);
+        if (rawRoutes.length === 0) {
+          setError("경로를 찾지 못했어요. 다른 장소로 시도해주세요.");
+          setLoading(false);
+          return;
+        }
+        while (rawRoutes.length < 4) rawRoutes.push(rawRoutes[0]);
 
         const built: SafeRoute[] = rawRoutes.map((r, i) => {
           const layer = LAYERS[i];
-          const leg = r.legs[0];
-          const path = r.overview_path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
+          const path = g.maps.geometry.encoding
+            .decodePath(r.encodedPolyline)
+            .map((p) => ({ lat: p.lat(), lng: p.lng() }));
           const { safetyScore, policeNearby, safetyFacilities } = scorePath(path);
-          const steps: RouteStep[] = leg.steps.map((s) => ({
-            instruction: (s.instructions ?? "").replace(/<[^>]*>/g, ""),
-            distanceMeters: s.distance?.value ?? 0,
-            durationSeconds: s.duration?.value ?? 0,
-            maneuver: (s as any).maneuver,
-            startLocation: { lat: s.start_location.lat(), lng: s.start_location.lng() },
-            endLocation: { lat: s.end_location.lat(), lng: s.end_location.lng() },
+          const steps: RouteStep[] = r.steps.map((s) => ({
+            instruction: (s.instruction ?? "").replace(/<[^>]*>/g, ""),
+            distanceMeters: s.distanceMeters,
+            durationSeconds: s.durationSeconds,
+            startLocation: s.startLocation,
+            endLocation: s.endLocation,
           }));
-          // Bias scores by layer character
           let bias = 0;
           if (layer.id === "safest") bias = 15;
           if (layer.id === "lit") bias = 8;
@@ -88,8 +89,8 @@ function RoutesPage() {
           return {
             ...layer,
             safetyScore: Math.max(10, Math.min(100, safetyScore + bias + (4 - i) * 3)),
-            distanceMeters: leg.distance?.value ?? 0,
-            durationSeconds: leg.duration?.value ?? 0,
+            distanceMeters: r.distanceMeters,
+            durationSeconds: r.durationSeconds,
             path,
             steps,
             policeNearby,
@@ -101,23 +102,21 @@ function RoutesPage() {
         setSelectedRouteId(built[0].id);
         setLoading(false);
 
-        // Draw polylines
         polylinesRef.current.forEach((p) => p.setMap(null));
-        polylinesRef.current = built.map((r) =>
-          new g.maps.Polyline({
-            path: r.path,
-            strokeColor: r.color,
-            strokeOpacity: 0.85,
-            strokeWeight: 6,
-            map: mapRef.current!,
-          }),
+        polylinesRef.current = built.map(
+          (r) =>
+            new g.maps.Polyline({
+              path: r.path,
+              strokeColor: r.color,
+              strokeOpacity: 0.85,
+              strokeWeight: 6,
+              map: mapRef.current!,
+            }),
         );
-        // Bounds
         const bounds = new g.maps.LatLngBounds();
         bounds.extend(origin);
         bounds.extend(destination);
         mapRef.current!.fitBounds(bounds, 80);
-        // Markers
         new g.maps.Marker({ position: origin, map: mapRef.current!, label: "출" });
         new g.maps.Marker({ position: destination, map: mapRef.current!, label: "도" });
       })
@@ -130,9 +129,9 @@ function RoutesPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, destination]);
 
-  // Highlight selected
   useEffect(() => {
     polylinesRef.current.forEach((line, i) => {
       const r = routes[i];
@@ -171,7 +170,6 @@ function RoutesPage() {
         )}
       </div>
 
-      {/* Route cards */}
       <div className="flex-1 overflow-y-auto px-3 pt-3">
         <div className="grid grid-cols-2 gap-2">
           {routes.map((r) => {
