@@ -9,8 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SecurityRouteImport } from './routes/security'
+import { Route as RoutesRouteImport } from './routes/routes'
+import { Route as RouteDetailRouteImport } from './routes/route-detail'
+import { Route as NavigateRouteImport } from './routes/navigate'
+import { Route as GuardianRouteImport } from './routes/guardian'
 import { Route as IndexRouteImport } from './routes/index'
 
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoutesRoute = RoutesRouteImport.update({
+  id: '/routes',
+  path: '/routes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RouteDetailRoute = RouteDetailRouteImport.update({
+  id: '/route-detail',
+  path: '/route-detail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NavigateRoute = NavigateRouteImport.update({
+  id: '/navigate',
+  path: '/navigate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuardianRoute = GuardianRouteImport.update({
+  id: '/guardian',
+  path: '/guardian',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +49,102 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/guardian': typeof GuardianRoute
+  '/navigate': typeof NavigateRoute
+  '/route-detail': typeof RouteDetailRoute
+  '/routes': typeof RoutesRoute
+  '/security': typeof SecurityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/guardian': typeof GuardianRoute
+  '/navigate': typeof NavigateRoute
+  '/route-detail': typeof RouteDetailRoute
+  '/routes': typeof RoutesRoute
+  '/security': typeof SecurityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/guardian': typeof GuardianRoute
+  '/navigate': typeof NavigateRoute
+  '/route-detail': typeof RouteDetailRoute
+  '/routes': typeof RoutesRoute
+  '/security': typeof SecurityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/guardian'
+    | '/navigate'
+    | '/route-detail'
+    | '/routes'
+    | '/security'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/guardian'
+    | '/navigate'
+    | '/route-detail'
+    | '/routes'
+    | '/security'
+  id:
+    | '__root__'
+    | '/'
+    | '/guardian'
+    | '/navigate'
+    | '/route-detail'
+    | '/routes'
+    | '/security'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GuardianRoute: typeof GuardianRoute
+  NavigateRoute: typeof NavigateRoute
+  RouteDetailRoute: typeof RouteDetailRoute
+  RoutesRoute: typeof RoutesRoute
+  SecurityRoute: typeof SecurityRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/routes': {
+      id: '/routes'
+      path: '/routes'
+      fullPath: '/routes'
+      preLoaderRoute: typeof RoutesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/route-detail': {
+      id: '/route-detail'
+      path: '/route-detail'
+      fullPath: '/route-detail'
+      preLoaderRoute: typeof RouteDetailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/navigate': {
+      id: '/navigate'
+      path: '/navigate'
+      fullPath: '/navigate'
+      preLoaderRoute: typeof NavigateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guardian': {
+      id: '/guardian'
+      path: '/guardian'
+      fullPath: '/guardian'
+      preLoaderRoute: typeof GuardianRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +157,11 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GuardianRoute: GuardianRoute,
+  NavigateRoute: NavigateRoute,
+  RouteDetailRoute: RouteDetailRoute,
+  RoutesRoute: RoutesRoute,
+  SecurityRoute: SecurityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
