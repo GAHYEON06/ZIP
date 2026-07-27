@@ -97,6 +97,13 @@ function Guardian() {
                   이동 시 실시간 위치가 이 번호로 공유됩니다 (시뮬레이션).
                 </p>
               </div>
+              <Link
+                to="/guardian-track"
+                className="block w-full rounded-full bg-primary py-3 text-center text-sm font-bold text-primary-foreground shadow"
+              >
+                🧭 피보호자에게 가는 최단 경로
+              </Link>
+
               <button
                 onClick={() => {
                   if (confirm("보호자 등록을 해제하시겠어요?")) {

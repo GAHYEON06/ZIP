@@ -87,7 +87,9 @@ function Navigate() {
         (pos) => {
           const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setCurrentPosition(p);
+          setWardPosition(p, destination?.name ?? null);
           setTracks((prev) => [...prev, p]);
+
           if (mapRef.current && meMarkerRef.current) {
             meMarkerRef.current.setPosition(p);
             mapRef.current.panTo(p);
