@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, cuteMapStyle } from "@/lib/gmaps";
-import { useRouteStore, useGuardian } from "@/lib/store";
+import { useRouteStore, useGuardian, useWardTrack } from "@/lib/store";
 
 export const Route = createFileRoute("/navigate")({
   head: () => ({
