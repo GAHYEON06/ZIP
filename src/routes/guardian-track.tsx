@@ -19,7 +19,7 @@ export const Route = createFileRoute("/guardian-track")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: GuardianTrack;
+  component: GuardianTrack,
 });
 
 function GuardianTrack() {
