@@ -66,6 +66,30 @@ export const useGuardian = create<PersistState>()(
   ),
 );
 
+/** 피보호자의 마지막 공유 위치 (보호자 추적용) */
+type WardTrackState = {
+  position: google.maps.LatLngLiteral | null;
+  updatedAt: number | null;
+  destinationName: string | null;
+  setWardPosition: (p: google.maps.LatLngLiteral, destinationName?: string | null) => void;
+  clearWard: () => void;
+};
+
+export const useWardTrack = create<WardTrackState>()(
+  persist(
+    (set) => ({
+      position: null,
+      updatedAt: null,
+      destinationName: null,
+      setWardPosition: (position, destinationName = null) =>
+        set({ position, updatedAt: Date.now(), destinationName }),
+      clearWard: () => set({ position: null, updatedAt: null, destinationName: null }),
+    }),
+    { name: "safe-route-ward-track" },
+  ),
+);
+
+
 export const useRouteStore = create<SessionState>((set) => ({
   origin: null,
   destination: null,
