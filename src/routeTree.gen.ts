@@ -13,6 +13,7 @@ import { Route as SecurityRouteImport } from './routes/security'
 import { Route as RoutesRouteImport } from './routes/routes'
 import { Route as RouteDetailRouteImport } from './routes/route-detail'
 import { Route as NavigateRouteImport } from './routes/navigate'
+import { Route as GuardianTrackRouteImport } from './routes/guardian-track'
 import { Route as GuardianRouteImport } from './routes/guardian'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -36,6 +37,11 @@ const NavigateRoute = NavigateRouteImport.update({
   path: '/navigate',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuardianTrackRoute = GuardianTrackRouteImport.update({
+  id: '/guardian-track',
+  path: '/guardian-track',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GuardianRoute = GuardianRouteImport.update({
   id: '/guardian',
   path: '/guardian',
@@ -50,6 +56,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/guardian': typeof GuardianRoute
+  '/guardian-track': typeof GuardianTrackRoute
   '/navigate': typeof NavigateRoute
   '/route-detail': typeof RouteDetailRoute
   '/routes': typeof RoutesRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/guardian': typeof GuardianRoute
+  '/guardian-track': typeof GuardianTrackRoute
   '/navigate': typeof NavigateRoute
   '/route-detail': typeof RouteDetailRoute
   '/routes': typeof RoutesRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/guardian': typeof GuardianRoute
+  '/guardian-track': typeof GuardianTrackRoute
   '/navigate': typeof NavigateRoute
   '/route-detail': typeof RouteDetailRoute
   '/routes': typeof RoutesRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/guardian'
+    | '/guardian-track'
     | '/navigate'
     | '/route-detail'
     | '/routes'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/guardian'
+    | '/guardian-track'
     | '/navigate'
     | '/route-detail'
     | '/routes'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/guardian'
+    | '/guardian-track'
     | '/navigate'
     | '/route-detail'
     | '/routes'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GuardianRoute: typeof GuardianRoute
+  GuardianTrackRoute: typeof GuardianTrackRoute
   NavigateRoute: typeof NavigateRoute
   RouteDetailRoute: typeof RouteDetailRoute
   RoutesRoute: typeof RoutesRoute
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NavigateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guardian-track': {
+      id: '/guardian-track'
+      path: '/guardian-track'
+      fullPath: '/guardian-track'
+      preLoaderRoute: typeof GuardianTrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/guardian': {
       id: '/guardian'
       path: '/guardian'
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GuardianRoute: GuardianRoute,
+  GuardianTrackRoute: GuardianTrackRoute,
   NavigateRoute: NavigateRoute,
   RouteDetailRoute: RouteDetailRoute,
   RoutesRoute: RoutesRoute,

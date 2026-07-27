@@ -31,6 +31,8 @@ function Navigate() {
   const nav = useNavigate();
   const { routes, selectedRouteId, destination, currentPosition, setCurrentPosition } = useRouteStore();
   const { guardianPhone } = useGuardian();
+  const setWardPosition = useWardTrack((s) => s.setWardPosition);
+
   const route = routes.find((r) => r.id === selectedRouteId);
   const mapDiv = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
