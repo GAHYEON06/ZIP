@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { loadGoogleMaps, cuteMapStyle } from "@/lib/gmaps";
-import { useRouteStore, useGuardian } from "@/lib/store";
+import { useRouteStore, useGuardian, useWardTrack } from "@/lib/store";
 
 export const Route = createFileRoute("/navigate")({
   head: () => ({
@@ -31,6 +31,8 @@ function Navigate() {
   const nav = useNavigate();
   const { routes, selectedRouteId, destination, currentPosition, setCurrentPosition } = useRouteStore();
   const { guardianPhone } = useGuardian();
+  const setWardPosition = useWardTrack((s) => s.setWardPosition);
+
   const route = routes.find((r) => r.id === selectedRouteId);
   const mapDiv = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -85,7 +87,9 @@ function Navigate() {
         (pos) => {
           const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setCurrentPosition(p);
+          setWardPosition(p, destination?.name ?? null);
           setTracks((prev) => [...prev, p]);
+
           if (mapRef.current && meMarkerRef.current) {
             meMarkerRef.current.setPosition(p);
             mapRef.current.panTo(p);

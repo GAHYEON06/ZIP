@@ -10,101 +10,143 @@ export type RouteStepDTO = {
   durationSeconds: number;
   startLocation: { lat: number; lng: number };
   endLocation: { lat: number; lng: number };
-  encodedPolyline: string;
 };
 
 export type RouteDTO = {
-  encodedPolyline: string;
+  path: { lat: number; lng: number }[];
   distanceMeters: number;
   durationSeconds: number;
   steps: RouteStepDTO[];
 };
 
-type GoogleRoute = {
-  distanceMeters?: number;
-  duration?: string;
-  polyline?: { encodedPolyline?: string };
-  legs?: Array<{
-    steps?: Array<{
-      distanceMeters?: number;
-      staticDuration?: string;
-      navigationInstruction?: { instructions?: string; maneuver?: string };
-      polyline?: { encodedPolyline?: string };
-      startLocation?: { latLng?: { latitude: number; longitude: number } };
-      endLocation?: { latLng?: { latitude: number; longitude: number } };
-    }>;
+type KakaoGuide = {
+  name?: string;
+  x: number;
+  y: number;
+  distance?: number;
+  duration?: number;
+  type?: number;
+  guidance?: string;
+};
+
+type KakaoRoute = {
+  result_code?: number;
+  result_msg?: string;
+  summary?: { distance?: number; duration?: number };
+  sections?: Array<{
+    roads?: Array<{ vertexes?: number[] }>;
+    guides?: KakaoGuide[];
   }>;
 };
 
-const parseSec = (d?: string) => (d ? parseInt(d.replace("s", ""), 10) || 0 : 0);
+const KAKAO_URL = "https://apis-navi.kakaomobility.com/v1/directions";
+
+function toDTO(r: KakaoRoute): RouteDTO | null {
+  if (r.result_code !== 0) return null;
+  const path: { lat: number; lng: number }[] = [];
+  const guides: KakaoGuide[] = [];
+  for (const section of r.sections ?? []) {
+    for (const road of section.roads ?? []) {
+      const v = road.vertexes ?? [];
+      for (let i = 0; i + 1 < v.length; i += 2) path.push({ lng: v[i], lat: v[i + 1] });
+    }
+    guides.push(...(section.guides ?? []));
+  }
+  if (path.length < 2) return null;
+
+  const steps: RouteStepDTO[] = guides
+    .filter((g) => (g.distance ?? 0) > 0 || g.guidance)
+    .map((g, i, arr) => {
+      const next = arr[i + 1] ?? g;
+      return {
+        instruction: g.guidance || g.name || "직진",
+        distanceMeters: Math.round(g.distance ?? 0),
+        durationSeconds: Math.round(g.duration ?? 0),
+        startLocation: { lat: g.y, lng: g.x },
+        endLocation: { lat: next.y, lng: next.x },
+      };
+    });
+
+  return {
+    path,
+    distanceMeters: Math.round(r.summary?.distance ?? 0),
+    durationSeconds: Math.round(r.summary?.duration ?? 0),
+    steps,
+  };
+}
+
+async function callKakao(
+  key: string,
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+  priority: "RECOMMEND" | "TIME" | "DISTANCE",
+): Promise<RouteDTO[]> {
+  const params = new URLSearchParams({
+    origin: `${origin.lng},${origin.lat}`,
+    destination: `${destination.lng},${destination.lat}`,
+    priority,
+    alternatives: "true",
+    road_details: "false",
+    car_type: "1",
+  });
+
+  const res = await fetch(`${KAKAO_URL}?${params.toString()}`, {
+    headers: { Authorization: `KakaoAK ${key}` },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`Kakao directions failed [${res.status}]: ${body}`);
+    throw new Error(`카카오 경로 계산 실패 (${res.status})`);
+  }
+
+  const json = (await res.json()) as { routes?: KakaoRoute[] };
+  return (json.routes ?? []).map(toDTO).filter((r): r is RouteDTO => r !== null);
+}
+
+async function computeRoutes(
+  origin: { lat: number; lng: number },
+  destination: { lat: number; lng: number },
+): Promise<{ routes: RouteDTO[] }> {
+  const key = process.env.KAKAO_REST_API_KEY;
+  if (!key) throw new Error("카카오 REST API 키가 설정되지 않았습니다.");
+
+  const results = await Promise.all(
+    (["RECOMMEND", "TIME", "DISTANCE"] as const).map((p) =>
+      callKakao(key, origin, destination, p).catch((e) => {
+        console.error(e);
+        return [] as RouteDTO[];
+      }),
+    ),
+  );
+
+  // Deduplicate by distance+duration signature
+  const seen = new Set<string>();
+  const routes: RouteDTO[] = [];
+  for (const r of results.flat()) {
+    const sig = `${r.distanceMeters}-${r.durationSeconds}`;
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    routes.push(r);
+  }
+
+  if (routes.length === 0) throw new Error("경로를 찾지 못했습니다.");
+  return { routes };
+}
 
 export const computeSafeRoutes = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => Input.parse(data))
-  .handler(async ({ data }): Promise<{ routes: RouteDTO[] }> => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    const gmapsKey = process.env.GOOGLE_MAPS_API_KEY;
-    if (!lovableKey || !gmapsKey) throw new Error("Google Maps 게이트웨이 자격 증명이 설정되지 않았습니다.");
+  .handler(async ({ data }): Promise<{ routes: RouteDTO[] }> =>
+    computeRoutes(data.origin, data.destination),
+  );
 
-    const fieldMask = [
-      "routes.duration",
-      "routes.distanceMeters",
-      "routes.polyline.encodedPolyline",
-      "routes.legs.steps.navigationInstruction",
-      "routes.legs.steps.distanceMeters",
-      "routes.legs.steps.staticDuration",
-      "routes.legs.steps.polyline.encodedPolyline",
-      "routes.legs.steps.startLocation",
-      "routes.legs.steps.endLocation",
-    ].join(",");
-
-    const res = await fetch(
-      "https://connector-gateway.lovable.dev/google_maps/routes/directions/v2:computeRoutes",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": gmapsKey,
-          "Content-Type": "application/json",
-          "X-Goog-FieldMask": fieldMask,
-        },
-        body: JSON.stringify({
-          origin: { location: { latLng: { latitude: data.origin.lat, longitude: data.origin.lng } } },
-          destination: { location: { latLng: { latitude: data.destination.lat, longitude: data.destination.lng } } },
-          travelMode: "WALK",
-          computeAlternativeRoutes: true,
-          languageCode: "ko",
-          regionCode: "KR",
-          units: "METRIC",
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`Routes API failed [${res.status}]: ${body}`);
-      throw new Error(`경로 계산 실패 (${res.status})`);
-    }
-
-    const json = (await res.json()) as { routes?: GoogleRoute[] };
-    const routes: RouteDTO[] = (json.routes ?? []).map((r) => ({
-      encodedPolyline: r.polyline?.encodedPolyline ?? "",
-      distanceMeters: r.distanceMeters ?? 0,
-      durationSeconds: parseSec(r.duration),
-      steps: (r.legs?.[0]?.steps ?? []).map((s) => ({
-        instruction: s.navigationInstruction?.instructions ?? "",
-        distanceMeters: s.distanceMeters ?? 0,
-        durationSeconds: parseSec(s.staticDuration),
-        startLocation: {
-          lat: s.startLocation?.latLng?.latitude ?? 0,
-          lng: s.startLocation?.latLng?.longitude ?? 0,
-        },
-        endLocation: {
-          lat: s.endLocation?.latLng?.latitude ?? 0,
-          lng: s.endLocation?.latLng?.longitude ?? 0,
-        },
-        encodedPolyline: s.polyline?.encodedPolyline ?? "",
-      })),
-    }));
-
-    return { routes };
+/** 보호자 → 피보호자 위치까지 가장 빠른 단일 경로 */
+export const computeFastestRoute = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => Input.parse(data))
+  .handler(async ({ data }): Promise<{ route: RouteDTO | null }> => {
+    const key = process.env.KAKAO_REST_API_KEY;
+    if (!key) throw new Error("카카오 REST API 키가 설정되지 않았습니다.");
+    const routes = await callKakao(key, data.origin, data.destination, "TIME");
+    const fastest = routes.sort((a, b) => a.durationSeconds - b.durationSeconds)[0] ?? null;
+    return { route: fastest };
   });
