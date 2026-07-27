@@ -71,10 +71,9 @@ function RoutesPage() {
 
         const built: SafeRoute[] = rawRoutes.map((r, i) => {
           const layer = LAYERS[i];
-          const path = g.maps.geometry.encoding
-            .decodePath(r.encodedPolyline)
-            .map((p) => ({ lat: p.lat(), lng: p.lng() }));
+          const path = r.path;
           const { safetyScore, policeNearby, safetyFacilities } = scorePath(path);
+
           const steps: RouteStep[] = r.steps.map((s) => ({
             instruction: (s.instruction ?? "").replace(/<[^>]*>/g, ""),
             distanceMeters: s.distanceMeters,
