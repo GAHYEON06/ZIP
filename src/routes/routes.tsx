@@ -72,7 +72,7 @@ function RoutesPage() {
         const built: SafeRoute[] = rawRoutes.map((r, i) => {
           const layer = LAYERS[i];
           const path = r.path;
-          const { safetyScore, policeNearby, safetyFacilities } = scorePath(path);
+          const { safetyScore, policeNearby, safetyFacilities, facilityDataAvailable } = scorePath(path);
 
           const steps: RouteStep[] = r.steps.map((s) => ({
             instruction: (s.instruction ?? "").replace(/<[^>]*>/g, ""),
@@ -94,6 +94,7 @@ function RoutesPage() {
             steps,
             policeNearby,
             safetyFacilities,
+            facilityDataAvailable,
           };
         });
 
@@ -204,7 +205,10 @@ function RoutesPage() {
             <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
               <Stat label="안전 점수" value={`${selected.safetyScore}점`} />
               <Stat label="경찰서 근처" value={`${selected.policeNearby}곳`} />
-              <Stat label="안심시설" value={`${selected.safetyFacilities}개`} />
+              <Stat
+                label="안심시설"
+                value={selected.facilityDataAvailable ? `${selected.safetyFacilities}개` : "데이터 없음"}
+              />
             </div>
             <div className="mt-3 flex gap-2">
               <Link
