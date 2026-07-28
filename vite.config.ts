@@ -8,7 +8,7 @@ export default defineConfig({
     TanStackRouterVite(),
     react(),
   ],
-  base: '/ZIP/', // GitHub Pages 저장소 이름 대소문자 일치
+  base: '/ZIP/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
