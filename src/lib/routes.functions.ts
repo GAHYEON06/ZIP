@@ -1,4 +1,4 @@
-import { computeRoutesInternal } from "./routes.core";
+import { computeCandidateRoutes } from "./routes.core";
 
 export type RouteStep = {
   instruction: string;
@@ -40,7 +40,7 @@ export async function computeRoutes(opts: {
     throw new Error("출발지와 목적지 좌표가 유효하지 않아요.");
   }
 
-  const routes = computeRoutesInternal(origin, destination);
+  const routes = computeCandidateRoutes(origin, destination);
   return { routes };
 }
 
