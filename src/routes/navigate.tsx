@@ -62,7 +62,6 @@ function Navigate() {
       });
       mapRef.current = map;
 
-      // 카카오 경로 선 Polyline
       const linePath = route.path.map(
         (p: any) => new kakao.maps.LatLng(p.lat, p.lng)
       );
@@ -75,7 +74,6 @@ function Navigate() {
         map: map,
       });
 
-      // 목적지 마커
       if (destination) {
         new kakao.maps.Marker({
           position: new kakao.maps.LatLng(destination.lat, destination.lng),
@@ -83,7 +81,6 @@ function Navigate() {
         });
       }
 
-      // 내 위치 표시 마커
       meMarkerRef.current = new kakao.maps.Marker({
         position: startLatLng,
         map: map,
@@ -132,13 +129,18 @@ function Navigate() {
   if (!route) return null;
   const step = route.steps[stepIndex];
   const remainingMeters = route.steps.slice(stepIndex).reduce((s, x) => s + x.distanceMeters, 0);
-  const remainingSec = route.steps.slice(stepIndex).reduce((s, x) => s + x.durationSeconds, 0);
+
+  // 💡 [시간 오차 수정] 차량 모드일 때 평균 속도(약 30km/h), 도보일 때 평균 속도(약 4km/h)를 반영해 다른 지도와 시간 차이가 나지 않도록 보정
+  const calculatedSec = isDriving 
+    ? (remainingMeters / (30000 / 3600)) 
+    : (remainingMeters / (4000 / 3600));
+  const remainingSec = Math.max(route.steps.slice(stepIndex).reduce((s, x) => s + x.durationSeconds, 0), Math.round(calculatedSec));
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
       <div className="bg-primary p-4 text-primary-foreground">
         <div className="mb-1 flex items-center justify-between text-xs opacity-80">
-          <span className="font-semibold">{isDriving ? "🚗 차량 경로 안내" : "🚶 도보 경로 안내"}</span>
+          <span className="font-semibold">{isDriving ? "🚗 차량 경로 안내 (주행 중)" : "🚶 도보 경로 안내 (보행 중)"}</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-4xl font-black">
@@ -174,7 +176,7 @@ function Navigate() {
             </div>
           </div>
           <div>
-            <div className="text-muted-foreground">예상 시간</div>
+            <div className="text-muted-foreground">예상 소요 시간</div>
             <div className="text-base font-bold text-foreground">
               {Math.round(remainingSec / 60)}분
             </div>
