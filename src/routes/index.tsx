@@ -7,39 +7,48 @@ export const Route = createFileRoute("/")({
 });
 
 function MainWard() {
-  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
 
   useEffect(() => {
-    // VWorld(브이월드) 2D 지도 OpenLayers 스크립트 동적 로드
+    // 중복 스크립트 로드 방지
+    const existingScript = document.getElementById("vworld-script");
+    if (existingScript) {
+      initMap();
+      return;
+    }
+
     const script = document.createElement("script");
+    script.id = "vworld-script";
     script.src = "https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659";
     script.async = true;
-
     script.onload = () => {
-      if (window.vworld && mapContainer.current) {
-        new window.vworld.Map(mapContainer.current, {
-          center: [126.9780, 37.5665], // 경도, 위도 (서울시청 기준)
-          zoom: 14,
-          basemapType: "gray", // 배경 지도 스타일
-          control: false, // 기본 컨트롤러 숨김
-          slider: false,
-        });
-      }
+      initMap();
     };
-
     document.head.appendChild(script);
 
-    return () => {
-      script.remove();
-    };
+    function initMap() {
+      if (window.vworld && mapRef.current) {
+        try {
+          new window.vworld.Map(mapRef.current.id, {
+            center: [126.9780, 37.5665], // 경도, 위도 (서울시청 기준)
+            zoom: 14,
+            basemapType: "gray",
+            control: false,
+            slider: false,
+          });
+        } catch (e) {
+          console.error("VWorld 맵 생성 오류:", e);
+        }
+      }
+    }
   }, []);
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 브이월드 지도 영역 */}
-      <div ref={mapContainer} className="absolute inset-0 h-full w-full z-0" />
+      {/* 1. 배경 브이월드 지도 영역 (id 부여) */}
+      <div id="vworldMap" ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
 
       {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2">
