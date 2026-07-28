@@ -24,7 +24,7 @@ const LAYERS: Array<Pick<SafeRoute, "id" | "label" | "color" | "description">> =
 function RoutesPage() {
   const nav = useNavigate();
   const compute = useServerFn(computeSafeRoutes);
-  const { origin, destination, setRoutes, routes, selectedRouteId, setSelectedRouteId } = useRouteStore();
+  const { origin, destination, setRoutes, routes, selectedRouteId, setSelectedRouteId, travelMode: storeTravelMode, setTravelMode } = useRouteStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,8 +32,8 @@ function RoutesPage() {
   const mapRef = useRef<any>(null);
   const polylinesRef = useRef<any[]>([]);
 
-  const currentRoute = routes.find((r) => r.id === selectedRouteId);
-  const travelMode = (currentRoute as any)?.travelMode || "WALKING";
+  // 스토어에 저장된 이동 수단(없으면 기본 WALKING)
+  const travelMode = storeTravelMode || "WALKING";
 
   useEffect(() => {
     if (!origin || !destination) {
@@ -87,6 +87,11 @@ function RoutesPage() {
             endLocation: s.endLocation,
           }));
 
+          // 차량 모드일 때는 시속 30km(약 8.33m/s), 도보 모드일 때는 시속 4km(약 1.11m/s) 기준으로 정확한 소요 시간 재계산
+          const speedMps = travelMode === "DRIVING" ? (30000 / 3600) : (4000 / 3600);
+          const calculatedDuration = Math.round(r.distanceMeters / speedMps);
+          const finalDurationSeconds = travelMode === "DRIVING" ? calculatedDuration : Math.max(r.durationSeconds, calculatedDuration);
+
           let bias = 0;
           if (layer.id === "safest") bias = 15;
           if (layer.id === "lit") bias = 8;
@@ -99,7 +104,7 @@ function RoutesPage() {
             ...layer,
             safetyScore: Math.max(10, Math.min(100, adjustedScore)),
             distanceMeters: r.distanceMeters,
-            durationSeconds: r.durationSeconds,
+            durationSeconds: finalDurationSeconds,
             travelMode: travelMode,
             path,
             steps,
@@ -157,11 +162,28 @@ function RoutesPage() {
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
-      <header className="flex items-center gap-2 border-b border-border bg-card px-3 py-3">
-        <Link to="/" className="text-xl">←</Link>
-        <h1 className="text-sm font-bold text-foreground">
-          {travelMode === "DRIVING" ? "🚗 차량 경로 4개 비교" : "🚶 도보 경로 4개 비교"}
-        </h1>
+      <header className="flex items-center justify-between border-b border-border bg-card px-3 py-3">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="text-xl">←</Link>
+          <h1 className="text-sm font-bold text-foreground">
+            {travelMode === "DRIVING" ? "🚗 차량 경로 4개 비교" : "🚶 도보 경로 4개 비교"}
+          </h1>
+        </div>
+        {/* 도보 / 차량 모드 즉시 전환 버튼 추가 */}
+        <div className="flex gap-1 bg-muted p-1 rounded-lg">
+          <button
+            onClick={() => setTravelMode("WALKING")}
+            className={`px-2 py-1 text-xs font-bold rounded-md transition ${travelMode === "WALKING" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+          >
+            도보
+          </button>
+          <button
+            onClick={() => setTravelMode("DRIVING")}
+            className={`px-2 py-1 text-xs font-bold rounded-md transition ${travelMode === "DRIVING" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+          >
+            차량
+          </button>
+        </div>
       </header>
 
       <div className="relative h-[42%] w-full">
