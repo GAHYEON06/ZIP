@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, cuteMapStyle } from "@/lib/gmaps";
+import { loadKakaoMaps } from "@/lib/gmaps";
 import { useWardTrack } from "@/lib/store";
 import { computeFastestRoute, type RouteDTO } from "@/lib/routes.functions";
 
@@ -25,13 +25,13 @@ export const Route = createFileRoute("/guardian-track")({
 function GuardianTrack() {
   const fastest = useServerFn(computeFastestRoute);
   const { position: wardPos, updatedAt, destinationName } = useWardTrack();
-  const [myPos, setMyPos] = useState<google.maps.LatLngLiteral | null>(null);
+  const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
   const [route, setRoute] = useState<RouteDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const mapDiv = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const lineRef = useRef<google.maps.Polyline | null>(null);
+  const mapRef = useRef<any>(null);
+  const lineRef = useRef<any>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -41,7 +41,7 @@ function GuardianTrack() {
     const id = navigator.geolocation.watchPosition(
       (pos) => setMyPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
       () => setError("보호자 위치 권한을 허용해주세요."),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
@@ -49,17 +49,22 @@ function GuardianTrack() {
   useEffect(() => {
     if (!wardPos) return;
     let cancelled = false;
-    loadGoogleMaps().then((g) => {
+
+    loadKakaoMaps().then((kakao) => {
       if (cancelled || !mapDiv.current || mapRef.current) return;
-      mapRef.current = new g.maps.Map(mapDiv.current, {
-        center: wardPos,
-        zoom: 15,
-        styles: cuteMapStyle,
-        disableDefaultUI: true,
-        gestureHandling: "greedy",
+      const wardLatLng = new kakao.maps.LatLng(wardPos.lat, wardPos.lng);
+
+      mapRef.current = new kakao.maps.Map(mapDiv.current, {
+        center: wardLatLng,
+        level: 4,
       });
-      new g.maps.Marker({ position: wardPos, map: mapRef.current, label: "피" });
+
+      new kakao.maps.Marker({
+        position: wardLatLng,
+        map: mapRef.current,
+      });
     });
+
     return () => {
       cancelled = true;
     };
@@ -69,25 +74,37 @@ function GuardianTrack() {
     if (!myPos || !wardPos) return;
     let cancelled = false;
     setLoading(true);
+
     fastest({ data: { origin: myPos, destination: wardPos } })
       .then(({ route: r }) => {
         if (cancelled) return;
         setRoute(r);
         setLoading(false);
-        if (!r || !mapRef.current || !window.google) return;
-        const g = window.google;
-        lineRef.current?.setMap(null);
-        lineRef.current = new g.maps.Polyline({
-          path: r.path,
+
+        if (!r || !mapRef.current || !window.kakao) return;
+        const kakao = window.kakao;
+
+        if (lineRef.current) {
+          lineRef.current.setMap(null);
+        }
+
+        const path = r.path.map(
+          (p: any) => new kakao.maps.LatLng(p.lat, p.lng)
+        );
+
+        lineRef.current = new kakao.maps.Polyline({
+          path,
           strokeColor: "#ef4444",
           strokeWeight: 7,
           strokeOpacity: 0.9,
           map: mapRef.current,
         });
-        const bounds = new g.maps.LatLngBounds();
-        bounds.extend(myPos);
-        bounds.extend(wardPos);
-        mapRef.current.fitBounds(bounds, 70);
+
+        // 보호자와 피보호자 위치가 모두 보이도록 영억 재설정
+        const bounds = new kakao.maps.LatLngBounds();
+        bounds.extend(new kakao.maps.LatLng(myPos.lat, myPos.lng));
+        bounds.extend(new kakao.maps.LatLng(wardPos.lat, wardPos.lng));
+        mapRef.current.setBounds(bounds);
       })
       .catch((e) => {
         console.error(e);
@@ -95,10 +112,10 @@ function GuardianTrack() {
         setError("경로를 계산하지 못했어요.");
         setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myPos?.lat, myPos?.lng, wardPos?.lat, wardPos?.lng]);
 
   return (
