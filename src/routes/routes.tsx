@@ -112,11 +112,9 @@ function RoutesPage() {
         setSelectedRouteId(built[0].id);
         setLoading(false);
 
-        // 기존 라인 제거
         polylinesRef.current.forEach((p) => p.setMap(null));
         polylinesRef.current = [];
 
-        // 카카오 지도에 경로(Polyline) 그리기
         const bounds = new kakaoMaps.LatLngBounds();
         bounds.extend(new kakaoMaps.LatLng(origin.lat, origin.lng));
         bounds.extend(new kakaoMaps.LatLng(destination.lat, destination.lng));
@@ -136,7 +134,6 @@ function RoutesPage() {
 
         mapRef.current.setBounds(bounds);
 
-        // 마커 표시
         new kakaoMaps.Marker({
           position: new kakaoMaps.LatLng(origin.lat, origin.lng),
           map: mapRef.current,
