@@ -13,7 +13,7 @@ function MainWard() {
   const [destText, setDestText] = useState("");
 
   useEffect(() => {
-    // 1. Leaflet CSS 및 JS 동적 로드 (브이월드 타일 렌더링용)
+    // 1. Leaflet 스타일 시트 동적 로드 (브이월드 타일 맵 구동용)
     if (!document.getElementById("leaflet-css")) {
       const link = document.createElement("link");
       link.id = "leaflet-css";
@@ -22,8 +22,9 @@ function MainWard() {
       document.head.appendChild(link);
     }
 
+    // 2. Leaflet JS 로드 후 브이월드 지도 초기화
     if (window.L) {
-      initVWorldMap();
+      initMap();
       return;
     }
 
@@ -31,18 +32,18 @@ function MainWard() {
     script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
     script.async = true;
     script.onload = () => {
-      initVWorldMap();
+      initMap();
     };
     document.head.appendChild(script);
 
-    function initVWorldMap() {
+    function initMap() {
       if (mapRef.current && window.L && !mapInstanceRef.current) {
         const apiKey = "1BD705BC-E920-3526-B69B-B1E5B4C5C659";
         
-        // 브이월드 일반 지도 레이어 URL
+        // 브이월드 표준 회색조(gray) 배경 지도 타일 URL
         const vworldUrl = `https://api.vworld.kr/req/wmts/1.0.0/${apiKey}/Base/{z}/{y}/{x}.png`;
 
-        // 지도 초기화 (서울시청 기준)
+        // 지도 생성 (서울시청 중심 좌표)
         const map = window.L.map(mapRef.current, {
           zoomControl: false,
           attributionControl: false,
@@ -52,6 +53,16 @@ function MainWard() {
           maxZoom: 19,
           minZoom: 6,
         }).addTo(map);
+
+        // 피그마 시안에 있는 발바닥/안심 마커 예시 추가
+        const customIcon = window.L.divIcon({
+          className: "custom-pin",
+          html: `<div style="background-color: #795548; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 2px solid white;">🐾</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+
+        window.L.marker([37.5665, 126.9780], { icon: customIcon }).addTo(map);
 
         mapInstanceRef.current = map;
       }
