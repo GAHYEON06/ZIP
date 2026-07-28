@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Menu, Search, Star, LogOut, Shield, MessageSquare, Siren } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -7,48 +7,22 @@ export const Route = createFileRoute("/")({
 });
 
 function MainWard() {
-  const mapRef = useRef<HTMLDivElement>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
 
-  useEffect(() => {
-    // 중복 스크립트 로드 방지
-    const existingScript = document.getElementById("vworld-script");
-    if (existingScript) {
-      initMap();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.id = "vworld-script";
-    script.src = "https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659";
-    script.async = true;
-    script.onload = () => {
-      initMap();
-    };
-    document.head.appendChild(script);
-
-    function initMap() {
-      if (window.vworld && mapRef.current) {
-        try {
-          new window.vworld.Map(mapRef.current.id, {
-            center: [126.9780, 37.5665], // 경도, 위도 (서울시청 기준)
-            zoom: 14,
-            basemapType: "gray",
-            control: false,
-            slider: false,
-          });
-        } catch (e) {
-          console.error("VWorld 맵 생성 오류:", e);
-        }
-      }
-    }
-  }, []);
+  // 브이월드 공식 2D 지도 웹 뷰어 URL (API 키 적용)
+  const vworldMapUrl = "https://map.vworld.kr/map.do?apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659";
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 브이월드 지도 영역 (id 부여) */}
-      <div id="vworldMap" ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
+      {/* 1. 배경 브이월드 지도 영역 (iframe을 사용하여 document.write 충돌 원천 차단) */}
+      <div className="absolute inset-0 h-full w-full z-0">
+        <iframe
+          src={vworldMapUrl}
+          title="V-World Map"
+          className="h-full w-full border-0"
+        />
+      </div>
 
       {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2">
