@@ -3,7 +3,7 @@ name: Check Figma Branch Status
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   check-figma:
@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Figma Branches Status
-        uses: figma/branches-status@v1 
+        uses: figma/branches-status-action@v1.0.0  # 또는 사용하려는 해당 액션의 정확한 [소유자/액션명@버전]
         with:
           figma-token: ${{ secrets.FIGMA_ACCESS_TOKEN }}
           file-key: "https://www.figma.com/design/fme5VVZVkIqMQih8GnIujy/IT%EA%B2%BD%EC%A7%84-%EB%8C%80%ED%9A%8C-TEAM?node-id=3480-552&t=1wxxIKoQ0P3dCwQQ-0"
