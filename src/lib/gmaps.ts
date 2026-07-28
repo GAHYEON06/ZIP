@@ -8,8 +8,8 @@ export function loadKakaoMaps(): Promise<any> {
       return;
     }
 
-    // 여기에 본인의 카카오 자바스크립트 API 키를 직접 문자열로 넣어도 됩니다!
-    const appkey = "여러분의_카카오_JS_키_입력";
+    // 여기에 따옴표 안에 본인의 카카오 자바스크립트 API 키를 직접 넣으세요!
+    const appkey = "57b1d8f8b56a30d795ab205b61759665";
 
     if (!appkey) {
       reject(new Error("카카오 API 키가 설정되지 않았습니다."));
