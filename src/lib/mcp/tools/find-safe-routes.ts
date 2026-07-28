@@ -4,7 +4,7 @@ import { computeRoutes } from "../../routes.core";
 import { scorePath } from "../../safety";
 
 const LAYERS = [
-  { id: "safest", label: "가장 안전", description: "경찰서·CCTV·안심시설 최대", bias: 15 },
+  { id: "safest", label: "가장 안전", description: "경찰서·CCTV·안심시설 및 대로 우선", bias: 15 },
   { id: "balanced", label: "균형", description: "안전과 빠름을 반반", bias: 0 },
   { id: "fastest", label: "가장 빠름", description: "시간 우선, 최단 경로", bias: -10 },
   { id: "lit", label: "밝은 길", description: "가로등·유동인구 많은 대로", bias: 8 },
@@ -20,26 +20,38 @@ export default defineTool({
     originLng: z.number().describe("Longitude of the starting point."),
     destinationLat: z.number().describe("Latitude of the destination."),
     destinationLng: z.number().describe("Longitude of the destination."),
+    travelMode: z
+      .enum(["WALKING", "DRIVING"])
+      .optional()
+      .default("WALKING")
+      .describe("Travel mode: WALKING for pedestrian, DRIVING for vehicle."),
     includeSteps: z
       .boolean()
       .describe("Include turn-by-turn steps for each route. Defaults to false."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: true },
-  handler: async ({ originLat, originLng, destinationLat, destinationLng, includeSteps }) => {
+  handler: async ({ originLat, originLng, destinationLat, destinationLng, travelMode = "WALKING", includeSteps }) => {
     try {
       const { routes } = await computeRoutes(
         { lat: originLat, lng: originLng },
         { lat: destinationLat, lng: destinationLng },
+        { mode: travelMode }
       );
 
       const scored = routes.slice(0, 4).map((r, i) => {
         const layer = LAYERS[i] ?? LAYERS[1];
         const s = scorePath(r.path);
+        
+        const isDriving = travelMode === "DRIVING";
+        const baseScore = s.safetyScore + layer.bias + (4 - i) * 3;
+        const adjustedScore = isDriving ? Math.min(100, baseScore + 5) : baseScore;
+
         return {
           id: layer.id,
           label: layer.label,
           description: layer.description,
-          safetyScore: Math.max(10, Math.min(100, s.safetyScore + layer.bias + (4 - i) * 3)),
+          travelMode: travelMode,
+          safetyScore: Math.max(10, Math.min(100, adjustedScore)),
           distanceMeters: r.distanceMeters,
           durationSeconds: r.durationSeconds,
           policeNearby: s.policeNearby,
@@ -61,10 +73,10 @@ export default defineTool({
         content: [
           {
             type: "text",
-            text: JSON.stringify({ recommended: best?.id, routes: scored }, null, 2),
+            text: JSON.stringify({ recommended: best?.id, travelMode, routes: scored }, null, 2),
           },
         ],
-        structuredContent: { recommended: best?.id ?? null, routes: scored },
+        structuredContent: { recommended: best?.id ?? null, travelMode, routes: scored },
       };
     } catch (error) {
       return { content: [{ type: "text", text: (error as Error).message }], isError: true };
