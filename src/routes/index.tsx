@@ -1,54 +1,54 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, Search, Star, LogOut, Shield, MessageSquare, Siren } from "lucide-react";
-import { MapView } from "@/components/MapView";
 
 export const Route = createFileRoute("/")({
   component: MainWard,
 });
 
 function MainWard() {
-  const [origin, setOrigin] = useState<{ lat: number; lng: number }>({
-    lat: 37.5665,
-    lng: 126.9780,
-  });
-  const [destination, setDestination] = useState<{ lat: number; lng: number }>({
-    lat: 37.541,
-    lng: 127.001,
-  });
-
+  const mapContainer = useRef<HTMLDivElement>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
 
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setOrigin({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          });
-        },
-        () => console.log("위치 정보를 가져올 수 없습니다.")
-      );
-    }
+    // VWorld(브이월드) 2D 지도 OpenLayers 스크립트 동적 로드
+    const script = document.createElement("script");
+    script.src = "https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659";
+    script.async = true;
+
+    script.onload = () => {
+      if (window.vworld && mapContainer.current) {
+        new window.vworld.Map(mapContainer.current, {
+          center: [126.9780, 37.5665], // 경도, 위도 (서울시청 기준)
+          zoom: 14,
+          basemapType: "gray", // 배경 지도 스타일
+          control: false, // 기본 컨트롤러 숨김
+          slider: false,
+        });
+      }
+    };
+
+    document.head.appendChild(script);
+
+    return () => {
+      script.remove();
+    };
   }, []);
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/20 font-sans">
-      {/* 1. 배경 지도 컴포넌트 */}
-      <div className="absolute inset-0 h-full w-full">
-        <MapView origin={origin} destination={destination} />
-      </div>
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
+      {/* 1. 배경 브이월드 지도 영역 */}
+      <div ref={mapContainer} className="absolute inset-0 h-full w-full z-0" />
 
-      {/* 2. 상단 검색 오버레이 레이아웃 */}
+      {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2">
-        {/* 좌측 햄버거 메뉴 버튼 */}
-        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm active:scale-95 transition">
+        {/* 좌측 햄버거 버튼 */}
+        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
           <Menu className="h-5 w-5 text-gray-700" />
         </button>
 
-        {/* 중앙 흰색 출발지/도착지 입력 박스 */}
+        {/* 중앙 출발지 / 도착지 입력 박스 */}
         <div className="flex flex-1 flex-col rounded-2xl bg-white px-3 py-1.5 shadow-lg border border-gray-100">
           {/* 출발지 */}
           <div className="flex items-center gap-2 py-1 border-b border-gray-100">
@@ -84,15 +84,15 @@ function MainWard() {
           </div>
         </div>
 
-        {/* 우측 나가기/로그아웃 버튼 */}
-        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm active:scale-95 transition">
+        {/* 우측 로그아웃/나가기 버튼 */}
+        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
           <LogOut className="h-5 w-5 text-gray-700" />
         </button>
       </div>
 
-      {/* 3. 하단 네비게이션 & 긴급신고 안심 바 */}
+      {/* 3. 하단 안심 네비게이션 바 (보안화면 / 긴급신고 / 커뮤니티) */}
       <div className="absolute bottom-0 left-0 right-0 z-10 flex h-20 items-end justify-between bg-amber-100/90 px-8 pb-3 rounded-t-3xl border-t border-amber-200/50 shadow-2xl backdrop-blur-md">
-        {/* 보안화면 탭 */}
+        {/* 보안화면 이동 링크 */}
         <Link
           to="/security"
           className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition"
@@ -101,11 +101,11 @@ function MainWard() {
           <span className="text-[11px] font-black tracking-tight">보안화면</span>
         </Link>
 
-        {/* 중앙 원형 긴급신고 대형 버튼 */}
+        {/* 중앙 빨간색 원형 긴급신고 버튼 */}
         <div className="relative -top-5 flex flex-col items-center">
           <button
             onClick={() => alert("112 및 보호자에게 긴급 알림을 전송합니다.")}
-            className="flex h-20 w-20 items-center justify-center rounded-full bg-white border-4 border-red-500 shadow-xl active:scale-95 transition group"
+            className="flex h-20 w-20 items-center justify-center rounded-full bg-white border-4 border-red-500 shadow-xl active:scale-95 transition"
           >
             <div className="flex flex-col items-center justify-center text-red-500">
               <Siren className="h-8 w-8 animate-pulse stroke-[2.5]" />
@@ -114,7 +114,7 @@ function MainWard() {
           </button>
         </div>
 
-        {/* 커뮤니티 탭 */}
+        {/* 커뮤니티 이동 링크 */}
         <Link
           to="/routes"
           className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition"
