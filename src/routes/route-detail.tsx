@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import MapView from "@/components/MapView";
-import { computeRoutes, type RouteDTO } from "@/lib/routes.functions";
-import { useRouteSelection } from "@/lib/store";
+import { MapView } from "@/components/MapView";
+import { computeRoutes } from "@/lib/routes.functions";
+import { useRouteStore } from "@/lib/store";
 
 export const Route = createFileRoute("/route-detail")({
   component: RouteDetail,
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/route-detail")({
 
 function RouteDetail() {
   const navigate = useNavigate();
-  const { selectedRoute, setRoute } = useRouteSelection();
+  const { selectedRoute, setSelectedRoute } = useRouteStore();
   const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +36,7 @@ function RouteDetail() {
       });
       const target = res.routes.find((r) => r.id === routeId);
       if (target) {
-        setRoute(target);
+        setSelectedRoute(target);
         navigate({ to: "/navigate" });
       }
     } catch (e) {
