@@ -1,0 +1,31 @@
+name: Check Figma Status
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  check-figma:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check Figma Integration
+        env:
+          FIGMA_TOKEN: ${{ secrets.FIGMA_TOKEN }}
+        run: |
+          if [ -z "$FIGMA_TOKEN" ]; then
+            echo "⚠️ FIGMA_TOKEN이 설정되지 않았습니다. GitHub Secrets를 확인해 주세요."
+            exit 0
+          fi
+          echo "✅ Figma Token 확인 완료. Figma 연동 준비가 되었습니다."
