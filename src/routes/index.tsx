@@ -11,10 +11,9 @@ function MainWard() {
   const mapInstanceRef = useRef<any>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // 메뉴 모달 상태
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Leaflet 스타일 시트 동적 로드
     if (!document.getElementById("leaflet-css")) {
       const link = document.createElement("link");
       link.id = "leaflet-css";
@@ -23,7 +22,6 @@ function MainWard() {
       document.head.appendChild(link);
     }
 
-    // 2. Leaflet JS 로드 및 지도 초기화
     if (window.L) {
       initMap();
       return;
@@ -40,11 +38,8 @@ function MainWard() {
     function initMap() {
       if (mapRef.current && window.L && !mapInstanceRef.current) {
         const apiKey = "1BD705BC-E920-3526-B69B-B1E5B4C5C659";
-        
-        // 브이월드 표준 타일 지도 URL
         const vworldUrl = `https://api.vworld.kr/req/wmts/1.0.0/${apiKey}/Base/{z}/{y}/{x}.png`;
 
-        // 지도 생성 (서울시청 중심)
         const map = window.L.map(mapRef.current, {
           zoomControl: false,
           attributionControl: false,
@@ -61,26 +56,28 @@ function MainWard() {
   }, []);
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 지도 영역 (CSS 필터로 파스텔톤 아기자기한 느낌 부여) */}
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/30 font-sans select-none">
+      {/* 
+        ✨ 귀여운 파스텔톤 지도 스타일링 (CSS 필터 극대화)
+        - invert: 색상을 반전시켜 독특한 테마 톤 생성
+        - hue-rotate: 색조를 틀어 따뜻한 피치/아이보리 감성 부여
+        - saturate: 채도를 낮춰 눈이 편안한 파스텔 느낌 연출
+      */}
       <div 
         ref={mapRef} 
-        className="absolute inset-0 h-full w-full z-0 filter saturate-[0.7] contrast-[0.95] brightness-[1.05]" 
+        className="absolute inset-0 h-full w-full z-0 filter invert-[0.92] hue-rotate-[180deg] saturate-[0.6] contrast-[1.1] brightness-[1.05]" 
       />
 
-      {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
+      {/* 상단 검색 및 메뉴 오버레이 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2 pointer-events-none">
-        {/* 좌측 햄버거 버튼 (메뉴 열기) */}
         <button 
           onClick={() => setIsMenuOpen(true)}
-          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition"
+          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm active:scale-95 transition"
         >
           <Menu className="h-5 w-5 text-gray-700" />
         </button>
 
-        {/* 중앙 출발지 / 도착지 입력 박스 */}
-        <div className="pointer-events-auto flex flex-1 flex-col rounded-2xl bg-white px-3 py-1.5 shadow-lg border border-gray-100">
-          {/* 출발지 */}
+        <div className="pointer-events-auto flex flex-1 flex-col rounded-2xl bg-white/95 px-3 py-1.5 shadow-lg backdrop-blur-sm border border-amber-100">
           <div className="flex items-center gap-2 py-1 border-b border-gray-100">
             <span className="text-xs font-bold text-gray-800 shrink-0">출발지:</span>
             <input
@@ -98,7 +95,6 @@ function MainWard() {
             </button>
           </div>
 
-          {/* 도착지 */}
           <div className="flex items-center gap-2 py-1">
             <span className="text-xs font-bold text-gray-800 shrink-0">도착지:</span>
             <input
@@ -114,21 +110,15 @@ function MainWard() {
           </div>
         </div>
 
-        {/* 우측 로그아웃/나가기 버튼 */}
-        <button className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
+        <button className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm active:scale-95 transition">
           <LogOut className="h-5 w-5 text-gray-700" />
         </button>
       </div>
 
-      {/* 3. 메뉴 클릭 시 나타나는 사이드 메뉴 모달 (신고 기능 포함) */}
+      {/* 메뉴 모달 (신고 기능 포함) */}
       {isMenuOpen && (
         <div className="absolute inset-0 z-50 flex">
-          {/* 배경 어둡게 처리 */}
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-xs" 
-            onClick={() => setIsMenuOpen(false)}
-          />
-          {/* 메뉴 컨텐츠 박스 */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setIsMenuOpen(false)} />
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
@@ -161,18 +151,13 @@ function MainWard() {
         </div>
       )}
 
-      {/* 4. 하단 안심 네비게이션 바 (보안화면 / 긴급신고 / 커뮤니티) */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 flex h-20 items-end justify-between bg-amber-100/90 px-8 pb-3 rounded-t-3xl border-t border-amber-200/50 shadow-2xl backdrop-blur-md">
-        {/* 보안화면 이동 링크 */}
-        <Link
-          to="/security"
-          className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition"
-        >
+      {/* 하단 네비게이션 바 */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 flex h-20 items-end justify-between bg-amber-100/95 px-8 pb-3 rounded-t-3xl border-t border-amber-200/50 shadow-2xl backdrop-blur-md">
+        <Link to="/security" className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition">
           <Shield className="h-6 w-6 stroke-[2]" />
           <span className="text-[11px] font-black tracking-tight">보안화면</span>
         </Link>
 
-        {/* 중앙 빨간색 원형 긴급신고 버튼 */}
         <div className="relative -top-5 flex flex-col items-center">
           <button
             onClick={() => alert("112 및 보호자에게 긴급 알림을 전송합니다.")}
@@ -185,11 +170,7 @@ function MainWard() {
           </button>
         </div>
 
-        {/* 커뮤니티 이동 링크 */}
-        <Link
-          to="/routes"
-          className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition"
-        >
+        <Link to="/routes" className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition">
           <MessageSquare className="h-6 w-6 stroke-[2]" />
           <span className="text-[11px] font-black tracking-tight">커뮤니티</span>
         </Link>
