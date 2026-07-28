@@ -8,41 +8,59 @@ export const Route = createFileRoute("/")({
 
 function MainWard() {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
 
   useEffect(() => {
-    // 1. 카카오 지도 SDK 동적 로드
-    if (window.kakao && window.kakao.maps) {
-      initMap();
+    // 1. Leaflet CSS 및 JS 동적 로드 (브이월드 타일 렌더링용)
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    if (window.L) {
+      initVWorldMap();
       return;
     }
 
     const script = document.createElement("script");
-    const apiKey = import.meta.env.VITE_KAKAO_MAP_KEY || "";
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false`;
+    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
     script.async = true;
     script.onload = () => {
-      window.kakao.maps.load(() => {
-        initMap();
-      });
+      initVWorldMap();
     };
     document.head.appendChild(script);
 
-    function initMap() {
-      if (mapRef.current && window.kakao) {
-        const options = {
-          center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울시청 기준
-          level: 4,
-        };
-        new window.kakao.maps.Map(mapRef.current, options);
+    function initVWorldMap() {
+      if (mapRef.current && window.L && !mapInstanceRef.current) {
+        const apiKey = "1BD705BC-E920-3526-B69B-B1E5B4C5C659";
+        
+        // 브이월드 일반 지도 레이어 URL
+        const vworldUrl = `https://api.vworld.kr/req/wmts/1.0.0/${apiKey}/Base/{z}/{y}/{x}.png`;
+
+        // 지도 초기화 (서울시청 기준)
+        const map = window.L.map(mapRef.current, {
+          zoomControl: false,
+          attributionControl: false,
+        }).setView([37.5665, 126.9780], 14);
+
+        window.L.tileLayer(vworldUrl, {
+          maxZoom: 19,
+          minZoom: 6,
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
       }
     }
   }, []);
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 카카오 지도 영역 */}
+      {/* 1. 배경 브이월드 지도 영역 */}
       <div ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
 
       {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
