@@ -28,7 +28,19 @@ export function MapView({
       });
       mapRef.current = map;
       onMap?.(map);
+      // 전국 어디서든 사용자의 현재 위치로 지도 중심 이동
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (cancelled) return;
+            map.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 8000 },
+        );
+      }
     });
+
     return () => {
       cancelled = true;
     };

@@ -16,6 +16,26 @@ function distM(a: google.maps.LatLngLiteral, b: Point) {
   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
 }
 
+// 안심시설(CCTV·보안등) 데이터가 존재하는 영역 (현재 서울권 공공데이터)
+const facilityBounds = safety.reduce(
+  (b, p) => ({
+    minLat: Math.min(b.minLat, p.lat),
+    maxLat: Math.max(b.maxLat, p.lat),
+    minLon: Math.min(b.minLon, p.lon),
+    maxLon: Math.max(b.maxLon, p.lon),
+  }),
+  { minLat: 90, maxLat: -90, minLon: 180, maxLon: -180 },
+);
+
+function inFacilityCoverage(pt: google.maps.LatLngLiteral, margin = 0.05) {
+  return (
+    pt.lat >= facilityBounds.minLat - margin &&
+    pt.lat <= facilityBounds.maxLat + margin &&
+    pt.lng >= facilityBounds.minLon - margin &&
+    pt.lng <= facilityBounds.maxLon + margin
+  );
+}
+
 // Sample path every ~50 points for speed
 export function scorePath(path: google.maps.LatLngLiteral[], radiusM = 300) {
   const step = Math.max(1, Math.floor(path.length / 30));
@@ -38,9 +58,33 @@ export function scorePath(path: google.maps.LatLngLiteral[], radiusM = 300) {
       }
     });
   }
-  // Normalize: cap at reasonable maxes
+
+  // 안심시설 데이터가 없는 지역(서울 외)에서는 경찰서 밀도 기반으로 점수를 환산
+  const facilityDataAvailable = samples.some((s) => inFacilityCoverage(s));
+
+  if (!facilityDataAvailable) {
+    const km = Math.max(0.3, pathLengthKm(path));
+    const density = policeNearby / km; // 경찰서/㎞
+    const pScore = Math.min(policeNearby * 10, 45);
+    const dScore = Math.min(density * 40, 45);
+    return {
+      safetyScore: Math.round(Math.max(25, pScore + dScore)),
+      policeNearby,
+      safetyFacilities,
+      facilityDataAvailable,
+    };
+  }
+
   const pScore = Math.min(policeNearby * 8, 40);
   const fScore = Math.min(safetyFacilities * 2.5, 60);
   const safetyScore = Math.round(pScore + fScore);
-  return { safetyScore, policeNearby, safetyFacilities };
+  return { safetyScore, policeNearby, safetyFacilities, facilityDataAvailable };
+}
+
+function pathLengthKm(path: google.maps.LatLngLiteral[]) {
+  let m = 0;
+  for (let i = 1; i < path.length; i++) {
+    m += distM(path[i - 1], { lat: path[i].lat, lon: path[i].lng });
+  }
+  return m / 1000;
 }

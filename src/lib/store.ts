@@ -20,6 +20,7 @@ export type SafeRoute = {
   steps: RouteStep[];
   policeNearby: number;
   safetyFacilities: number;
+  facilityDataAvailable?: boolean;
 };
 
 export type RouteStep = {
