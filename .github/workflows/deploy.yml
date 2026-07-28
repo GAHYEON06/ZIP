@@ -21,16 +21,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      # Bun 환경 설치 (Lovable 프로젝트용)
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 20
+          bun-version: latest
 
+      # 패키지 설치
       - name: Install dependencies
-        run: npm ci
+        run: bun install
 
+      # 프로젝트 빌드
       - name: Build project
-        run: npm run build
+        run: bun run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
