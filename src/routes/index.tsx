@@ -13,7 +13,7 @@ function MainWard() {
   const [destText, setDestText] = useState("");
 
   useEffect(() => {
-    // 1. Leaflet 스타일 시트 동적 로드 (브이월드 타일 맵 구동용)
+    // 1. Leaflet 스타일 시트 동적 로드
     if (!document.getElementById("leaflet-css")) {
       const link = document.createElement("link");
       link.id = "leaflet-css";
@@ -22,7 +22,7 @@ function MainWard() {
       document.head.appendChild(link);
     }
 
-    // 2. Leaflet JS 로드 후 브이월드 지도 초기화
+    // 2. Leaflet JS 로드 후 귀여운 스타일의 지도 초기화
     if (window.L) {
       initMap();
       return;
@@ -40,29 +40,20 @@ function MainWard() {
       if (mapRef.current && window.L && !mapInstanceRef.current) {
         const apiKey = "1BD705BC-E920-3526-B69B-B1E5B4C5C659";
         
-        // 브이월드 표준 회색조(gray) 배경 지도 타일 URL
+        // 브이월드 표준 지도 타일 URL
         const vworldUrl = `https://api.vworld.kr/req/wmts/1.0.0/${apiKey}/Base/{z}/{y}/{x}.png`;
 
-        // 지도 생성 (서울시청 중심 좌표)
+        // 지도 생성 (서울시청 중심)
         const map = window.L.map(mapRef.current, {
           zoomControl: false,
           attributionControl: false,
         }).setView([37.5665, 126.9780], 14);
 
+        // 부드럽고 깔끔한 느낌을 주는 타일 레이어 추가
         window.L.tileLayer(vworldUrl, {
           maxZoom: 19,
           minZoom: 6,
         }).addTo(map);
-
-        // 피그마 시안에 있는 발바닥/안심 마커 예시 추가
-        const customIcon = window.L.divIcon({
-          className: "custom-pin",
-          html: `<div style="background-color: #795548; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 2px solid white;">🐾</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-        });
-
-        window.L.marker([37.5665, 126.9780], { icon: customIcon }).addTo(map);
 
         mapInstanceRef.current = map;
       }
@@ -71,8 +62,11 @@ function MainWard() {
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 브이월드 지도 영역 */}
-      <div ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
+      {/* 1. 배경 지도 영역 (CSS 필터를 적용해 색감을 더 아기자기하고 부드럽게 변경) */}
+      <div 
+        ref={mapRef} 
+        className="absolute inset-0 h-full w-full z-0 filter saturate-[0.75] contrast-[0.95] brightness-[1.03]" 
+      />
 
       {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2 pointer-events-none">
