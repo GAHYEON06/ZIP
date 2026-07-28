@@ -34,6 +34,8 @@ function Navigate() {
   const setWardPosition = useWardTrack((s) => s.setWardPosition);
 
   const route = routes.find((r) => r.id === selectedRouteId);
+  const isDriving = (route as any)?.travelMode === "DRIVING";
+
   const mapDiv = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const meMarkerRef = useRef<google.maps.Marker | null>(null);
@@ -53,7 +55,7 @@ function Navigate() {
       const start = route.path[0];
       const map = new g.maps.Map(mapDiv.current, {
         center: start,
-        zoom: 17,
+        zoom: isDriving ? 15 : 17,
         styles: cuteMapStyle,
         disableDefaultUI: true,
         heading: 0,
@@ -73,8 +75,8 @@ function Navigate() {
         map,
         icon: {
           path: g.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: "#3b82f6",
+          scale: isDriving ? 12 : 10,
+          fillColor: isDriving ? "#ef4444" : "#3b82f6",
           fillOpacity: 1,
           strokeColor: "#fff",
           strokeWeight: 3,
@@ -108,19 +110,20 @@ function Navigate() {
     };
   }, [route]);
 
-  // Advance step based on current position
   useEffect(() => {
     if (!route || !currentPosition) return;
     const currentStep = route.steps[stepIndex];
     if (!currentStep) return;
-    if (distance(currentPosition, currentStep.endLocation) < 25) {
+    const threshold = isDriving ? 30 : 20;
+
+    if (distance(currentPosition, currentStep.endLocation) < threshold) {
       if (stepIndex + 1 >= route.steps.length) {
         setArrived(true);
       } else {
         setStepIndex((i) => i + 1);
       }
     }
-  }, [currentPosition, stepIndex, route]);
+  }, [currentPosition, stepIndex, route, isDriving]);
 
   if (!route) return null;
   const step = route.steps[stepIndex];
@@ -129,8 +132,10 @@ function Navigate() {
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
-      {/* Current step banner */}
       <div className="bg-primary p-4 text-primary-foreground">
+        <div className="mb-1 flex items-center justify-between text-xs opacity-80">
+          <span className="font-semibold">{isDriving ? "🚗 차량 경로 안내" : "🚶 도보 경로 안내"}</span>
+        </div>
         <div className="flex items-center gap-3">
           <div className="text-4xl font-black">
             {step?.maneuver?.includes("left") ? "↰" : step?.maneuver?.includes("right") ? "↱" : "↑"}
@@ -184,7 +189,7 @@ function Navigate() {
           <div className="rounded-3xl bg-white p-8 text-center shadow-2xl">
             <div className="text-6xl">🎉</div>
             <h2 className="mt-3 text-xl font-black text-foreground">도착했어요!</h2>
-            <p className="mt-2 text-sm text-muted-foreground">안전하게 도착하셨습니다.</p>
+            <p className="mt-2 text-sm text-muted-foreground">안전하게 목적지에 도착하셨습니다.</p>
             <Link
               to="/"
               className="mt-6 inline-block rounded-full bg-primary px-6 py-2 text-sm font-bold text-primary-foreground"
