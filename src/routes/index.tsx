@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Menu, Search, Star, LogOut, Shield, MessageSquare, Siren } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -7,63 +7,32 @@ export const Route = createFileRoute("/")({
 });
 
 function MainWard() {
-  const mapRef = useRef<HTMLDivElement>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
 
-  useEffect(() => {
-    // 1. 이미 스크립트가 있다면 바로 지도 초기화 시도
-    if (window.vworld && mapRef.current) {
-      initVWorldMap();
-      return;
-    }
-
-    // 2. 브이월드 v2 스크립트 동적 로드
-    const script = document.createElement("script");
-    script.id = "vworld-script";
-    script.src = "https://map.vworld.kr/js/vworldMapInit.js.do?version=2.0&apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659";
-    script.async = true;
-    
-    script.onload = () => {
-      initVWorldMap();
-    };
-
-    document.head.appendChild(script);
-
-    function initVWorldMap() {
-      if (window.vworld && mapRef.current) {
-        try {
-          // 기존에 생성된 캔버스가 있다면 초기화 중복 방지
-          mapRef.current.innerHTML = "";
-          
-          new window.vworld.Map(mapRef.current.id, {
-            center: [126.9780, 37.5665], // 서울시청 좌표
-            zoom: 14,
-            basemapType: "gray",
-            control: false,
-            slider: false,
-          });
-        } catch (e) {
-          console.error("VWorld 맵 렌더링 에러:", e);
-        }
-      }
-    }
-  }, []);
+  // 브이월드 표준 지도 뷰어 임베드 URL (document.write 충돌 원천 방지)
+  const vworldEmbedUrl = "https://map.vworld.kr/map/o2d.do?apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659&basemap=gray&zoom=14&lat=37.5665&lon=126.9780";
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 브이월드 지도 영역 */}
-      <div id="vworldMapContainer" ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
+      {/* 1. 배경 브이월드 지도 영역 (iframe 방식으로 document.write 에러 차단) */}
+      <div className="absolute inset-0 h-full w-full z-0">
+        <iframe
+          src={vworldEmbedUrl}
+          title="V-World Map Viewer"
+          className="h-full w-full border-0 pointer-events-auto"
+        />
+      </div>
 
       {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
-      <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2">
+      <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2 pointer-events-none">
         {/* 좌측 햄버거 버튼 */}
-        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
+        <button className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
           <Menu className="h-5 w-5 text-gray-700" />
         </button>
 
         {/* 중앙 출발지 / 도착지 입력 박스 */}
-        <div className="flex flex-1 flex-col rounded-2xl bg-white px-3 py-1.5 shadow-lg border border-gray-100">
+        <div className="pointer-events-auto flex flex-1 flex-col rounded-2xl bg-white px-3 py-1.5 shadow-lg border border-gray-100">
           {/* 출발지 */}
           <div className="flex items-center gap-2 py-1 border-b border-gray-100">
             <span className="text-xs font-bold text-gray-800 shrink-0">출발지:</span>
@@ -99,7 +68,7 @@ function MainWard() {
         </div>
 
         {/* 우측 로그아웃/나가기 버튼 */}
-        <button className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
+        <button className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
           <LogOut className="h-5 w-5 text-gray-700" />
         </button>
       </div>
