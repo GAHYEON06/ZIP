@@ -1,7 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider } from '@tanstack/react-router'
-import { router } from './router'
+import { getRouter } from './router'
+
+// router 인스턴스 생성
+const router = getRouter()
 
 const rootElement = document.getElementById('root')!
 
