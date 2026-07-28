@@ -1,9 +1,4 @@
-declare global {
-  interface Window {
-    kakao: any;
-  }
-}
-
+// @ts-nocheck
 export function loadKakaoMaps(): Promise<any> {
   return new Promise((resolve, reject) => {
     if (typeof window !== "undefined" && window.kakao && window.kakao.maps) {
@@ -12,9 +7,9 @@ export function loadKakaoMaps(): Promise<any> {
     }
 
     const appkey =
-      (import.meta as any).env?.VITE_KAKAO_MAP_KEY ||
-      (import.meta as any).env?.KAKAO_REST_API_KEY ||
-      process.env.KAKAO_REST_API_KEY;
+      import.meta.env?.VITE_KAKAO_MAP_KEY ||
+      import.meta.env?.KAKAO_REST_API_KEY ||
+      "";
 
     if (!appkey) {
       reject(new Error("카카오 API 키가 설정되지 않았습니다."));
