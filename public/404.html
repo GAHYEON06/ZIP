@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ZIP - 안심 귀갓길</title>
+    <script type="text/javascript">
+      // SPA 라우팅을 위한 Single Page Apps for GitHub Pages 스크립트
+      var pathSegmentsToKeep = 1; // '/ZIP/' 경로 유지
+
+      var l = window.location;
+      l.replace(
+        l.protocol +
+          '//' +
+          l.hostname +
+          (l.port ? ':' + l.port : '') +
+          l.pathname
+            .split('/')
+            .slice(0, 1 + pathSegmentsToKeep)
+            .join('/') +
+          '/?/' +
+          l.pathname
+            .slice(1)
+            .split('/')
+            .slice(pathSegmentsToKeep)
+            .join('/') +
+          (l.search ? '&' + l.search.replace(/^\?/, '') : '') +
+          l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
