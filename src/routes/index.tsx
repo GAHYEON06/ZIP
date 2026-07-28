@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, Search, Star, LogOut, Shield, MessageSquare, Siren } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -7,22 +7,43 @@ export const Route = createFileRoute("/")({
 });
 
 function MainWard() {
+  const mapRef = useRef<HTMLDivElement>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
 
-  // 브이월드 표준 지도 뷰어 임베드 URL (document.write 충돌 원천 방지)
-  const vworldEmbedUrl = "https://map.vworld.kr/map/o2d.do?apiKey=1BD705BC-E920-3526-B69B-B1E5B4C5C659&basemap=gray&zoom=14&lat=37.5665&lon=126.9780";
+  useEffect(() => {
+    // 1. 카카오 지도 SDK 동적 로드
+    if (window.kakao && window.kakao.maps) {
+      initMap();
+      return;
+    }
+
+    const script = document.createElement("script");
+    const apiKey = import.meta.env.VITE_KAKAO_MAP_KEY || "";
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${apiKey}&autoload=false`;
+    script.async = true;
+    script.onload = () => {
+      window.kakao.maps.load(() => {
+        initMap();
+      });
+    };
+    document.head.appendChild(script);
+
+    function initMap() {
+      if (mapRef.current && window.kakao) {
+        const options = {
+          center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울시청 기준
+          level: 4,
+        };
+        new window.kakao.maps.Map(mapRef.current, options);
+      }
+    }
+  }, []);
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
-      {/* 1. 배경 브이월드 지도 영역 (iframe 방식으로 document.write 에러 차단) */}
-      <div className="absolute inset-0 h-full w-full z-0">
-        <iframe
-          src={vworldEmbedUrl}
-          title="V-World Map Viewer"
-          className="h-full w-full border-0 pointer-events-auto"
-        />
-      </div>
+      {/* 1. 배경 카카오 지도 영역 */}
+      <div ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
 
       {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2 pointer-events-none">
