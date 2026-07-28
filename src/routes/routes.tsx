@@ -34,8 +34,12 @@ function RoutesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mapDiv = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
+  mapRef = useRef<google.maps.Map | null>(null);
   const polylinesRef = useRef<google.maps.Polyline[]>([]);
+
+  // 스토어에서 선택된 경로의 travelMode를 가져오거나 기본 WALKING 사용
+  const currentRoute = routes.find((r) => r.id === selectedRouteId);
+  const travelMode = (currentRoute as any)?.travelMode || "WALKING";
 
   useEffect(() => {
     if (!origin || !destination) {
@@ -48,14 +52,20 @@ function RoutesPage() {
 
     Promise.all([
       loadGoogleMaps(),
-      compute({ data: { origin: { lat: origin.lat, lng: origin.lng }, destination: { lat: destination.lat, lng: destination.lng } } }),
+      compute({
+        data: {
+          origin: { lat: origin.lat, lng: origin.lng },
+          destination: { lat: destination.lat, lng: destination.lng },
+          mode: travelMode, // 백엔드 함수에 travelMode 전달!
+        },
+      }),
     ])
       .then(([g, result]: [typeof google, { routes: RouteDTO[] }]) => {
         if (cancelled) return;
         if (!mapRef.current && mapDiv.current) {
           mapRef.current = new g.maps.Map(mapDiv.current, {
             center: origin,
-            zoom: 14,
+            zoom: travelMode === "DRIVING" ? 13 : 14,
             styles: cuteMapStyle,
             disableDefaultUI: true,
             gestureHandling: "greedy",
@@ -81,15 +91,21 @@ function RoutesPage() {
             startLocation: s.startLocation,
             endLocation: s.endLocation,
           }));
+
           let bias = 0;
           if (layer.id === "safest") bias = 15;
           if (layer.id === "lit") bias = 8;
           if (layer.id === "fastest") bias = -10;
+
+          const baseScore = safetyScore + bias + (4 - i) * 3;
+          const adjustedScore = travelMode === "DRIVING" ? Math.min(100, baseScore + 5) : baseScore;
+
           return {
             ...layer,
-            safetyScore: Math.max(10, Math.min(100, safetyScore + bias + (4 - i) * 3)),
+            safetyScore: Math.max(10, Math.min(100, adjustedScore)),
             distanceMeters: r.distanceMeters,
             durationSeconds: r.durationSeconds,
+            travelMode: travelMode,
             path,
             steps,
             policeNearby,
@@ -130,7 +146,7 @@ function RoutesPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [origin, destination]);
+  }, [origin, destination, travelMode]);
 
   useEffect(() => {
     polylinesRef.current.forEach((line, i) => {
@@ -150,7 +166,9 @@ function RoutesPage() {
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
       <header className="flex items-center gap-2 border-b border-border bg-card px-3 py-3">
         <Link to="/" className="text-xl">←</Link>
-        <h1 className="text-sm font-bold text-foreground">안전 경로 4개 비교</h1>
+        <h1 className="text-sm font-bold text-foreground">
+          {travelMode === "DRIVING" ? "🚗 차량 경로 4개 비교" : "🚶 도보 경로 4개 비교"}
+        </h1>
       </header>
 
       <div className="relative h-[42%] w-full">
@@ -221,7 +239,7 @@ function RoutesPage() {
                 to="/navigate"
                 className="flex-1 rounded-full bg-primary py-2 text-center text-sm font-bold text-primary-foreground"
               >
-                🚶 안내 시작
+                {travelMode === "DRIVING" ? "🚗 차량 안내 시작" : "🚶 도보 안내 시작"}
               </Link>
             </div>
           </div>
