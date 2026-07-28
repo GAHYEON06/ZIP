@@ -1,21 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, cuteMapStyle } from "@/lib/gmaps";
+import { loadKakaoMaps } from "@/lib/gmaps";
 import { useRouteStore, type SafeRoute, type RouteStep } from "@/lib/store";
 import { scorePath } from "@/lib/safety";
 import { computeSafeRoutes, type RouteDTO } from "@/lib/routes.functions";
 
 export const Route = createFileRoute("/routes")({
   head: () => ({
-    meta: [
-      { title: "안전 경로 결과 · 안심 귀갓길" },
-      { name: "description", content: "AI가 계산한 4가지 안전 경로 후보를 비교하고 선택하세요." },
-      { property: "og:title", content: "안전 경로 결과" },
-      { property: "og:description", content: "4개 레이어에서 동시에 계산된 안전 경로" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
+    meta: [{ title: "안전 경로 결과 · 안심 귀갓길" }],
   }),
   component: RoutesPage,
 });
@@ -33,11 +26,11 @@ function RoutesPage() {
   const { origin, destination, setRoutes, routes, selectedRouteId, setSelectedRouteId } = useRouteStore();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const mapDiv = useRef<HTMLDivElement>(null);
-  mapRef = useRef<google.maps.Map | null>(null);
-  const polylinesRef = useRef<google.maps.Polyline[]>([]);
 
-  // 스토어에서 선택된 경로의 travelMode를 가져오거나 기본 WALKING 사용
+  const mapDiv = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const polylinesRef = useRef<any[]>([]);
+
   const currentRoute = routes.find((r) => r.id === selectedRouteId);
   const travelMode = (currentRoute as any)?.travelMode || "WALKING";
 
@@ -51,26 +44,27 @@ function RoutesPage() {
     setError(null);
 
     Promise.all([
-      loadGoogleMaps(),
+      loadKakaoMaps(),
       compute({
         data: {
           origin: { lat: origin.lat, lng: origin.lng },
           destination: { lat: destination.lat, lng: destination.lng },
-          mode: travelMode, // 백엔드 함수에 travelMode 전달!
+          mode: travelMode,
         },
       }),
     ])
-      .then(([g, result]: [typeof google, { routes: RouteDTO[] }]) => {
+      .then(([kakaoMaps, result]: [any, { routes: RouteDTO[] }]) => {
         if (cancelled) return;
+
         if (!mapRef.current && mapDiv.current) {
-          mapRef.current = new g.maps.Map(mapDiv.current, {
-            center: origin,
-            zoom: travelMode === "DRIVING" ? 13 : 14,
-            styles: cuteMapStyle,
-            disableDefaultUI: true,
-            gestureHandling: "greedy",
-          });
+          const container = mapDiv.current;
+          const options = {
+            center: new kakaoMaps.LatLng(origin.lat, origin.lng),
+            level: travelMode === "DRIVING" ? 5 : 4,
+          };
+          mapRef.current = new kakaoMaps.Map(container, options);
         }
+
         const rawRoutes = result.routes.slice(0, 4);
         if (rawRoutes.length === 0) {
           setError("경로를 찾지 못했어요. 다른 장소로 시도해주세요.");
@@ -118,23 +112,39 @@ function RoutesPage() {
         setSelectedRouteId(built[0].id);
         setLoading(false);
 
+        // 기존 라인 제거
         polylinesRef.current.forEach((p) => p.setMap(null));
-        polylinesRef.current = built.map(
-          (r) =>
-            new g.maps.Polyline({
-              path: r.path,
-              strokeColor: r.color,
-              strokeOpacity: 0.85,
-              strokeWeight: 6,
-              map: mapRef.current!,
-            }),
-        );
-        const bounds = new g.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(destination);
-        mapRef.current!.fitBounds(bounds, 80);
-        new g.maps.Marker({ position: origin, map: mapRef.current!, label: "출" });
-        new g.maps.Marker({ position: destination, map: mapRef.current!, label: "도" });
+        polylinesRef.current = [];
+
+        // 카카오 지도에 경로(Polyline) 그리기
+        const bounds = new kakaoMaps.LatLngBounds();
+        bounds.extend(new kakaoMaps.LatLng(origin.lat, origin.lng));
+        bounds.extend(new kakaoMaps.LatLng(destination.lat, destination.lng));
+
+        built.forEach((r) => {
+          const linePath = r.path.map((p) => new kakaoMaps.LatLng(p.lat, p.lng));
+          const polyline = new kakaoMaps.Polyline({
+            path: linePath,
+            strokeWeight: 6,
+            strokeColor: r.color,
+            strokeOpacity: 0.85,
+            strokeStyle: "solid",
+          });
+          polyline.setMap(mapRef.current);
+          polylinesRef.current.push(polyline);
+        });
+
+        mapRef.current.setBounds(bounds);
+
+        // 마커 표시
+        new kakaoMaps.Marker({
+          position: new kakaoMaps.LatLng(origin.lat, origin.lng),
+          map: mapRef.current,
+        });
+        new kakaoMaps.Marker({
+          position: new kakaoMaps.LatLng(destination.lat, destination.lng),
+          map: mapRef.current,
+        });
       })
       .catch((e) => {
         console.error(e);
@@ -145,22 +155,7 @@ function RoutesPage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [origin, destination, travelMode]);
-
-  useEffect(() => {
-    polylinesRef.current.forEach((line, i) => {
-      const r = routes[i];
-      if (!r) return;
-      line.setOptions({
-        strokeWeight: r.id === selectedRouteId ? 8 : 4,
-        strokeOpacity: r.id === selectedRouteId ? 1 : 0.4,
-        zIndex: r.id === selectedRouteId ? 10 : 1,
-      });
-    });
-  }, [selectedRouteId, routes]);
-
-  const selected = routes.find((r) => r.id === selectedRouteId);
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
@@ -177,7 +172,7 @@ function RoutesPage() {
           <div className="absolute inset-0 flex items-center justify-center bg-white/70">
             <div className="text-center">
               <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-              <p className="mt-2 text-xs text-muted-foreground">4개 레이어 동시 계산 중…</p>
+              <p className="mt-2 text-xs text-muted-foreground">카카오 지도 경로 계산 중…</p>
             </div>
           </div>
         )}
@@ -216,44 +211,7 @@ function RoutesPage() {
             );
           })}
         </div>
-
-        {selected && (
-          <div className="mt-4 rounded-2xl bg-card p-4 shadow-sm">
-            <h2 className="text-sm font-bold text-foreground">선택된 경로 상세</h2>
-            <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-              <Stat label="안전 점수" value={`${selected.safetyScore}점`} />
-              <Stat label="경찰서 근처" value={`${selected.policeNearby}곳`} />
-              <Stat
-                label="안심시설"
-                value={selected.facilityDataAvailable ? `${selected.safetyFacilities}개` : "데이터 없음"}
-              />
-            </div>
-            <div className="mt-3 flex gap-2">
-              <Link
-                to="/route-detail"
-                className="flex-1 rounded-full border-2 border-primary py-2 text-center text-sm font-bold text-primary"
-              >
-                🗺️ 길찾기 상세
-              </Link>
-              <Link
-                to="/navigate"
-                className="flex-1 rounded-full bg-primary py-2 text-center text-sm font-bold text-primary-foreground"
-              >
-                {travelMode === "DRIVING" ? "🚗 차량 안내 시작" : "🚶 도보 안내 시작"}
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-secondary p-2">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
-      <div className="text-sm font-bold text-foreground">{value}</div>
     </div>
   );
 }
