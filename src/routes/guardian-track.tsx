@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { loadKakaoMaps } from "@/lib/gmaps";
 import { useWardTrack } from "@/lib/store";
@@ -23,7 +22,6 @@ export const Route = createFileRoute("/guardian-track")({
 });
 
 function GuardianTrack() {
-  const fastest = useServerFn(computeFastestRoute);
   const { position: wardPos, updatedAt, destinationName } = useWardTrack();
   const [myPos, setMyPos] = useState<{ lat: number; lng: number } | null>(null);
   const [route, setRoute] = useState<RouteDTO | null>(null);
@@ -75,7 +73,8 @@ function GuardianTrack() {
     let cancelled = false;
     setLoading(true);
 
-    fastest({ data: { origin: myPos, destination: wardPos } })
+    // useServerFn 대신 클라이언트 함수 직접 호출
+    Promise.resolve(computeFastestRoute({ data: { origin: myPos, destination: wardPos } }))
       .then(({ route: r }) => {
         if (cancelled) return;
         setRoute(r);
@@ -100,7 +99,7 @@ function GuardianTrack() {
           map: mapRef.current,
         });
 
-        // 보호자와 피보호자 위치가 모두 보이도록 영억 재설정
+        // 보호자와 피보호자 위치가 모두 보이도록 영역 재설정
         const bounds = new kakao.maps.LatLngBounds();
         bounds.extend(new kakao.maps.LatLng(myPos.lat, myPos.lng));
         bounds.extend(new kakao.maps.LatLng(wardPos.lat, wardPos.lng));
