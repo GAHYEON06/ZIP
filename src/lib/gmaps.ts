@@ -30,10 +30,10 @@ export function loadKakaoMaps(): Promise<any> {
   });
 }
 
-// 빌드 에러 방지를 위한 기존 Google Maps 하위 호환 가짜/대체 함수들
+// 1. 구버전 코드 호환용 export
 export const cuteMapStyle = [];
 
+// 2. 구버전 loadGoogleMaps 호출 시 loadKakaoMaps 실행
 export function loadGoogleMaps(): Promise<any> {
-  // 기존 구글 지도를 호출하는 페이지들(navigate, MapView 등)이 터지지 않도록 카카오 지도로 연결해줍니다.
   return loadKakaoMaps();
 }
