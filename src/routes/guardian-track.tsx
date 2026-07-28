@@ -73,7 +73,6 @@ function GuardianTrack() {
     let cancelled = false;
     setLoading(true);
 
-    // useServerFn 대신 클라이언트 함수 직접 호출
     Promise.resolve(computeFastestRoute({ data: { origin: myPos, destination: wardPos } }))
       .then(({ route: r }) => {
         if (cancelled) return;
@@ -99,7 +98,6 @@ function GuardianTrack() {
           map: mapRef.current,
         });
 
-        // 보호자와 피보호자 위치가 모두 보이도록 영역 재설정
         const bounds = new kakao.maps.LatLngBounds();
         bounds.extend(new kakao.maps.LatLng(myPos.lat, myPos.lng));
         bounds.extend(new kakao.maps.LatLng(wardPos.lat, wardPos.lng));
