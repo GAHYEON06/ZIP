@@ -130,7 +130,7 @@ function Navigate() {
   const step = route.steps[stepIndex];
   const remainingMeters = route.steps.slice(stepIndex).reduce((s, x) => s + x.distanceMeters, 0);
 
-  // 💡 [시간 오차 수정] 차량 모드일 때 평균 속도(약 30km/h), 도보일 때 평균 속도(약 4km/h)를 반영해 다른 지도와 시간 차이가 나지 않도록 보정
+  // 차량 모드(평균 30km/h)와 도보 모드(평균 4km/h) 속도를 반영하여 다른 지도 앱과 시간 오차 보정
   const calculatedSec = isDriving 
     ? (remainingMeters / (30000 / 3600)) 
     : (remainingMeters / (4000 / 3600));
