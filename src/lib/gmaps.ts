@@ -8,10 +8,8 @@ export function loadKakaoMaps(): Promise<any> {
       return;
     }
 
-    const appkey =
-      import.meta.env?.VITE_KAKAO_MAP_KEY ||
-      import.meta.env?.KAKAO_REST_API_KEY ||
-      "";
+    // 여기에 본인의 카카오 자바스크립트 API 키를 직접 문자열로 넣어도 됩니다!
+    const appkey = "여러분의_카카오_JS_키_입력";
 
     if (!appkey) {
       reject(new Error("카카오 API 키가 설정되지 않았습니다."));
@@ -30,10 +28,8 @@ export function loadKakaoMaps(): Promise<any> {
   });
 }
 
-// 1. 구버전 코드 호환용 export
 export const cuteMapStyle = [];
 
-// 2. 구버전 loadGoogleMaps 호출 시 loadKakaoMaps 실행
 export function loadGoogleMaps(): Promise<any> {
   return loadKakaoMaps();
 }
