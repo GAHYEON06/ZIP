@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { Menu, Search, Star, LogOut, Shield, MessageSquare, Siren, AlertTriangle } from "lucide-react";
+import { Menu, Search, Star, LogOut, Shield, MessageSquare, Siren } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: MainWard,
@@ -11,7 +11,7 @@ function MainWard() {
   const mapInstanceRef = useRef<any>(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false); // 사이드 메뉴 열림 상태
 
   useEffect(() => {
     if (!document.getElementById("leaflet-css")) {
@@ -40,6 +40,7 @@ function MainWard() {
         const apiKey = "1BD705BC-E920-3526-B69B-B1E5B4C5C659";
         const vworldUrl = `https://api.vworld.kr/req/wmts/1.0.0/${apiKey}/Base/{z}/{y}/{x}.png`;
 
+        // 지도 생성 (원래의 선명한 지도 스타일 유지)
         const map = window.L.map(mapRef.current, {
           zoomControl: false,
           attributionControl: false,
@@ -56,28 +57,23 @@ function MainWard() {
   }, []);
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/30 font-sans select-none">
-      {/* 
-        ✨ 귀여운 파스텔톤 지도 스타일링 (CSS 필터 극대화)
-        - invert: 색상을 반전시켜 독특한 테마 톤 생성
-        - hue-rotate: 색조를 틀어 따뜻한 피치/아이보리 감성 부여
-        - saturate: 채도를 낮춰 눈이 편안한 파스텔 느낌 연출
-      */}
-      <div 
-        ref={mapRef} 
-        className="absolute inset-0 h-full w-full z-0 filter invert-[0.92] hue-rotate-[180deg] saturate-[0.6] contrast-[1.1] brightness-[1.05]" 
-      />
+    <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden bg-amber-50/25 font-sans select-none">
+      {/* 1. 배경 지도 영역 (필터 제거하여 원래 선명한 지도로 복원) */}
+      <div ref={mapRef} className="absolute inset-0 h-full w-full z-0" />
 
-      {/* 상단 검색 및 메뉴 오버레이 */}
+      {/* 2. 상단 검색 및 메뉴 오버레이 레이어 */}
       <div className="absolute top-4 left-0 right-0 z-10 flex items-center justify-between px-4 gap-2 pointer-events-none">
+        {/* 좌측 햄버거 버튼 (메뉴 열기) */}
         <button 
           onClick={() => setIsMenuOpen(true)}
-          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm active:scale-95 transition"
+          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition"
         >
           <Menu className="h-5 w-5 text-gray-700" />
         </button>
 
-        <div className="pointer-events-auto flex flex-1 flex-col rounded-2xl bg-white/95 px-3 py-1.5 shadow-lg backdrop-blur-sm border border-amber-100">
+        {/* 중앙 출발지 / 도착지 입력 박스 */}
+        <div className="pointer-events-auto flex flex-1 flex-col rounded-2xl bg-white px-3 py-1.5 shadow-lg border border-gray-100">
+          {/* 출발지 */}
           <div className="flex items-center gap-2 py-1 border-b border-gray-100">
             <span className="text-xs font-bold text-gray-800 shrink-0">출발지:</span>
             <input
@@ -95,6 +91,7 @@ function MainWard() {
             </button>
           </div>
 
+          {/* 도착지 */}
           <div className="flex items-center gap-2 py-1">
             <span className="text-xs font-bold text-gray-800 shrink-0">도착지:</span>
             <input
@@ -110,54 +107,120 @@ function MainWard() {
           </div>
         </div>
 
-        <button className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/90 shadow-md backdrop-blur-sm active:scale-95 transition">
+        {/* 우측 로그아웃/나가기 버튼 */}
+        <button className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md active:scale-95 transition">
           <LogOut className="h-5 w-5 text-gray-700" />
         </button>
       </div>
 
-      {/* 메뉴 모달 (신고 기능 포함) */}
+      {/* 3. 피그마 시안과 똑같은 사이드 메뉴 슬라이드 (신고 및 메뉴 기능) */}
       {isMenuOpen && (
         <div className="absolute inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={() => setIsMenuOpen(false)} />
-          <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl p-6 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200">
+          {/* 배경 어둡게 */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity" 
+            onClick={() => setIsMenuOpen(false)}
+          />
+
+          {/* 메뉴 패널 (노란빛 배경, 갈색 버튼들) */}
+          <div className="relative w-[82%] max-w-xs bg-[#FFF5CC] h-full shadow-2xl p-6 flex flex-col justify-between z-10 animate-in slide-in-from-left duration-200 border-r border-amber-200">
             <div>
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                <h2 className="font-bold text-gray-800 text-base">전체 메뉴</h2>
-                <button onClick={() => setIsMenuOpen(false)} className="text-gray-400 hover:text-gray-600 text-sm font-bold">✕</button>
+              {/* 상단 로고 영역 */}
+              <div className="flex flex-col items-center pt-2 pb-6">
+                <div className="bg-white/80 px-4 py-2 rounded-2xl shadow-sm border border-amber-200/60 mb-2">
+                  <span className="text-lg font-black tracking-wider bg-gradient-to-r from-emerald-600 via-blue-500 to-amber-500 bg-clip-text text-transparent">
+                    Safe ZIP
+                  </span>
+                </div>
               </div>
-              <div className="mt-6 flex flex-col gap-4">
-                <button 
+
+              {/* 갈색 메인 버튼 5개 */}
+              <div className="flex flex-col gap-3.5">
+                <Link
+                  to="/routes"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full py-3.5 bg-[#8B5A2B] hover:bg-[#744a22] text-white font-bold text-sm rounded-xl shadow-md text-center transition active:scale-95"
+                >
+                  커뮤니티
+                </Link>
+
+                <Link
+                  to="/security"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-full py-3.5 bg-[#8B5A2B] hover:bg-[#744a22] text-white font-bold text-sm rounded-xl shadow-md text-center transition active:scale-95"
+                >
+                  보안화면
+                </Link>
+
+                <button
                   onClick={() => {
-                    alert("위험 구역 / 가로등 고장 등 신고 화면으로 이동합니다.");
+                    alert("모니터링 화면으로 이동합니다.");
                     setIsMenuOpen(false);
                   }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-red-50 text-red-600 font-bold text-sm hover:bg-red-100 transition"
+                  className="w-full py-3.5 bg-[#8B5A2B] hover:bg-[#744a22] text-white font-bold text-sm rounded-xl shadow-md text-center transition active:scale-95"
                 >
-                  <AlertTriangle className="h-5 w-5" />
-                  <span>위험 지역 / 시설 신고</span>
+                  모니터링
                 </button>
-                <Link to="/security" className="p-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium text-sm transition">
-                  안심 보안 설정
-                </Link>
-                <Link to="/routes" className="p-3 rounded-xl hover:bg-gray-50 text-gray-700 font-medium text-sm transition">
-                  커뮤니티 및 안심 경로 공유
-                </Link>
+
+                <button
+                  onClick={() => {
+                    alert("개인정보 설정 화면으로 이동합니다.");
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full py-3.5 bg-[#8B5A2B] hover:bg-[#744a22] text-white font-bold text-sm rounded-xl shadow-md text-center transition active:scale-95"
+                >
+                  개인정보
+                </button>
+
+                <button
+                  onClick={() => {
+                    alert("설정 화면으로 이동합니다.");
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full py-3.5 bg-[#8B5A2B] hover:bg-[#744a22] text-white font-bold text-sm rounded-xl shadow-md text-center transition active:scale-95"
+                >
+                  설정
+                </button>
               </div>
             </div>
-            <div className="text-xs text-gray-400 text-center pb-2">
-              안심 귀갓길 프로젝트 TEAM
+
+            {/* 하단 도움말, 로그아웃 및 귀여운 캐릭터 곰돌이 영역 */}
+            <div className="flex items-end justify-between pb-2 pt-4">
+              <div className="flex flex-col gap-1.5 text-xs font-bold text-gray-700">
+                <button 
+                  onClick={() => alert("도움말 센터입니다.")} 
+                  className="text-left hover:text-amber-900 transition"
+                >
+                  도움말
+                </button>
+                <button 
+                  onClick={() => alert("로그아웃 되었습니다.")} 
+                  className="text-left hover:text-red-600 transition"
+                >
+                  로그아웃
+                </button>
+              </div>
+
+              {/* 귀여운 곰돌이 일러스트 대체 아이콘/아바타 */}
+              <div className="w-12 h-12 rounded-full bg-amber-200/80 border-2 border-amber-400 flex items-center justify-center shadow-inner text-xl">
+                🐻
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 하단 네비게이션 바 */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 flex h-20 items-end justify-between bg-amber-100/95 px-8 pb-3 rounded-t-3xl border-t border-amber-200/50 shadow-2xl backdrop-blur-md">
-        <Link to="/security" className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition">
+      {/* 4. 하단 안심 네비게이션 바 */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 flex h-20 items-end justify-between bg-amber-100/90 px-8 pb-3 rounded-t-3xl border-t border-amber-200/50 shadow-2xl backdrop-blur-md">
+        <Link
+          to="/security"
+          className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition"
+        >
           <Shield className="h-6 w-6 stroke-[2]" />
           <span className="text-[11px] font-black tracking-tight">보안화면</span>
         </Link>
 
+        {/* 중앙 긴급신고 버튼 */}
         <div className="relative -top-5 flex flex-col items-center">
           <button
             onClick={() => alert("112 및 보호자에게 긴급 알림을 전송합니다.")}
@@ -170,7 +233,10 @@ function MainWard() {
           </button>
         </div>
 
-        <Link to="/routes" className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition">
+        <Link
+          to="/routes"
+          className="flex flex-col items-center gap-0.5 text-gray-800 hover:text-red-500 transition"
+        >
           <MessageSquare className="h-6 w-6 stroke-[2]" />
           <span className="text-[11px] font-black tracking-tight">커뮤니티</span>
         </Link>
