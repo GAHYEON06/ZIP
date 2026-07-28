@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, cuteMapStyle } from "@/lib/gmaps";
+import { loadKakaoMaps } from "@/lib/gmaps";
 import { useRouteStore, useGuardian, useWardTrack } from "@/lib/store";
 
 export const Route = createFileRoute("/navigate")({
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/navigate")({
   component: Navigate,
 });
 
-function distance(a: google.maps.LatLngLiteral, b: google.maps.LatLngLiteral) {
+function distance(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371000;
   const toR = (d: number) => (d * Math.PI) / 180;
   const dLat = toR(b.lat - a.lat);
@@ -37,11 +37,11 @@ function Navigate() {
   const isDriving = (route as any)?.travelMode === "DRIVING";
 
   const mapDiv = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const meMarkerRef = useRef<google.maps.Marker | null>(null);
+  const mapRef = useRef<any>(null);
+  const meMarkerRef = useRef<any>(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [arrived, setArrived] = useState(false);
-  const [tracks, setTracks] = useState<google.maps.LatLngLiteral[]>([]);
+  const [tracks, setTracks] = useState<{ lat: number; lng: number }[]>([]);
   const watchIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -50,37 +50,43 @@ function Navigate() {
       return;
     }
     let cancelled = false;
-    loadGoogleMaps().then((g) => {
+
+    loadKakaoMaps().then((kakao) => {
       if (cancelled || !mapDiv.current) return;
       const start = route.path[0];
-      const map = new g.maps.Map(mapDiv.current, {
-        center: start,
-        zoom: isDriving ? 15 : 17,
-        styles: cuteMapStyle,
-        disableDefaultUI: true,
-        heading: 0,
-        tilt: 45,
+      const startLatLng = new kakao.maps.LatLng(start.lat, start.lng);
+
+      const map = new kakao.maps.Map(mapDiv.current, {
+        center: startLatLng,
+        level: isDriving ? 4 : 3,
       });
       mapRef.current = map;
-      new g.maps.Polyline({
-        path: route.path,
-        strokeColor: route.color,
+
+      // 카카오 경로 선 Polyline
+      const linePath = route.path.map(
+        (p: any) => new kakao.maps.LatLng(p.lat, p.lng)
+      );
+      new kakao.maps.Polyline({
+        path: linePath,
         strokeWeight: 8,
+        strokeColor: route.color || "#3b82f6",
         strokeOpacity: 0.9,
-        map,
+        strokeStyle: "solid",
+        map: map,
       });
-      new g.maps.Marker({ position: destination!, map, label: "도" });
-      meMarkerRef.current = new g.maps.Marker({
-        position: start,
-        map,
-        icon: {
-          path: g.maps.SymbolPath.CIRCLE,
-          scale: isDriving ? 12 : 10,
-          fillColor: isDriving ? "#ef4444" : "#3b82f6",
-          fillOpacity: 1,
-          strokeColor: "#fff",
-          strokeWeight: 3,
-        },
+
+      // 목적지 마커
+      if (destination) {
+        new kakao.maps.Marker({
+          position: new kakao.maps.LatLng(destination.lat, destination.lng),
+          map: map,
+        });
+      }
+
+      // 내 위치 표시 마커
+      meMarkerRef.current = new kakao.maps.Marker({
+        position: startLatLng,
+        map: map,
       });
     });
 
@@ -92,16 +98,14 @@ function Navigate() {
           setWardPosition(p, destination?.name ?? null);
           setTracks((prev) => [...prev, p]);
 
-          if (mapRef.current && meMarkerRef.current) {
-            meMarkerRef.current.setPosition(p);
-            mapRef.current.panTo(p);
-            if (pos.coords.heading != null && !isNaN(pos.coords.heading)) {
-              mapRef.current.setHeading(pos.coords.heading);
-            }
+          if (mapRef.current && meMarkerRef.current && window.kakao) {
+            const currentLatLng = new window.kakao.maps.LatLng(p.lat, p.lng);
+            meMarkerRef.current.setPosition(currentLatLng);
+            mapRef.current.panTo(currentLatLng);
           }
         },
         (err) => console.warn("geolocation err", err),
-        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 },
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
       );
     }
     return () => {
