@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "ziplog-safe-route-mcp",
+      "version": "0.1.0",
+      "title": "안심 귀갓길 (Safe Route)"
+    },
+    "tools": [
+      {
+        "name": "search_place",
+        "title": "Search a place in Korea",
+        "description": "Search Korean places by name or keyword (e.g. '성신여자대학교') and get their coordinates, so they can be used as an origin or destination for safe-route planning.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Place name or keyword to search for, in Korean or English."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "description": "Maximum number of results to return (1-15). Defaults to 5."
+            }
+          },
+          "required": [
+            "query",
+            "limit"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "find_safe_routes",
+        "title": "Find safe routes",
+        "description": "Compute up to 4 candidate routes between two coordinates in Korea and score each one for safety using nationwide police-station data and Seoul-area CCTV/security-light data. Returns safety score, distance, duration and turn-by-turn directions per route.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "originLat": {
+              "type": "number",
+              "description": "Latitude of the starting point."
+            },
+            "originLng": {
+              "type": "number",
+              "description": "Longitude of the starting point."
+            },
+            "destinationLat": {
+              "type": "number",
+              "description": "Latitude of the destination."
+            },
+            "destinationLng": {
+              "type": "number",
+              "description": "Longitude of the destination."
+            },
+            "includeSteps": {
+              "type": "boolean",
+              "description": "Include turn-by-turn steps for each route. Defaults to false."
+            }
+          },
+          "required": [
+            "originLat",
+            "originLng",
+            "destinationLat",
+            "destinationLng",
+            "includeSteps"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "nearby_safety_facilities",
+        "title": "Count nearby safety facilities",
+        "description": "Count public safety infrastructure near a coordinate: police stations (nationwide) and CCTV / security lights (Seoul-area open data). Useful for judging how safe a specific spot is.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number",
+              "description": "Latitude of the point to inspect."
+            },
+            "lng": {
+              "type": "number",
+              "description": "Longitude of the point to inspect."
+            },
+            "radiusMeters": {
+              "type": "number",
+              "description": "Search radius in meters. Defaults to 500."
+            }
+          },
+          "required": [
+            "lat",
+            "lng",
+            "radiusMeters"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
