@@ -1,55 +1,78 @@
 import { useEffect, useRef } from "react";
 import { loadKakaoMaps } from "@/lib/gmaps";
+import { RouteDTO } from "@/lib/routes.functions";
+
+interface MapViewProps {
+  origin: { lat: number; lng: number };
+  destination: { lat: number; lng: number };
+  routes?: RouteDTO[];
+  selectedRouteId?: string;
+  onSelectRoute?: (routeId: string) => void;
+}
 
 export function MapView({
-  center = { lat: 37.5636, lng: 126.99 },
-  zoom = 3,
-  onMap,
-  className,
-}: {
-  center?: { lat: number; lng: number };
-  zoom?: number;
-  onMap?: (m: any) => void;
-  className?: string;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
+  origin,
+  destination,
+  routes = [],
+  selectedRouteId,
+  onSelectRoute,
+}: MapViewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+  const polylinesRef = useRef<any[]>([]);
 
   useEffect(() => {
-    let cancelled = false;
+    let isCancelled = false;
+
     loadKakaoMaps().then((kakao) => {
-      if (cancelled || !ref.current) return;
+      if (isCancelled || !containerRef.current) return;
 
-      const options = {
-        center: new kakao.maps.LatLng(center.lat, center.lng),
-        level: zoom,
-      };
-
-      const map = new kakao.maps.Map(ref.current, options);
-      mapRef.current = map;
-      onMap?.(map);
-
-      // 전국 어디서든 사용자의 현재 위치로 지도 중심 이동
-      if (typeof navigator !== "undefined" && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            if (cancelled) return;
-            const moveLatLng = new kakao.maps.LatLng(
-              pos.coords.latitude,
-              pos.coords.longitude
-            );
-            map.setCenter(moveLatLng);
-          },
-          () => {},
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
+      if (!mapRef.current) {
+        const center = new kakao.maps.LatLng(origin.lat, origin.lng);
+        mapRef.current = new kakao.maps.Map(containerRef.current, {
+          center,
+          level: 4,
+        });
       }
+
+      const map = mapRef.current;
+
+      polylinesRef.current.forEach((p) => p.setMap(null));
+      polylinesRef.current = [];
+
+      routes.forEach((r) => {
+        const path = r.path.map((p) => new kakao.maps.LatLng(p.lat, p.lng));
+        const isSelected = r.id === selectedRouteId;
+
+        const polyline = new kakao.maps.Polyline({
+          path,
+          strokeWeight: isSelected ? 6 : 4,
+          strokeColor: isSelected ? "#3b82f6" : "#9ca3af",
+          strokeOpacity: isSelected ? 0.9 : 0.5,
+          map,
+        });
+
+        if (onSelectRoute) {
+          kakao.maps.event.addListener(polyline, "click", () => {
+            onSelectRoute(r.id);
+          });
+        }
+
+        polylinesRef.current.push(polyline);
+      });
+
+      const bounds = new kakao.maps.LatLngBounds();
+      bounds.extend(new kakao.maps.LatLng(origin.lat, origin.lng));
+      bounds.extend(new kakao.maps.LatLng(destination.lat, destination.lng));
+      map.setBounds(bounds);
     });
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
     };
-  }, []);
+  }, [origin.lat, origin.lng, destination.lat, destination.lng, routes, selectedRouteId]);
 
-  return <div ref={ref} className={className ?? "h-full w-full"} />;
+  return <div ref={containerRef} className="h-full w-full" />;
 }
+
+export default MapView;
